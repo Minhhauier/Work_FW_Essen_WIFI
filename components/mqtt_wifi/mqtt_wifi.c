@@ -20,6 +20,7 @@ static char *mqtt_password = "password";
 static char json[1024] = "";
 static char buffer[1024] = "";
 static char cmd[256];
+static bool first_pub_version=false;
 RTC_DATA_ATTR static esp_mqtt_client_handle_t client;
 
 static esp_err_t mqtt_subscribe(esp_mqtt_client_handle_t client_id, const char *topic, int qos)
@@ -46,7 +47,7 @@ void mqtt_publish_data(char *data,char *topic){
     else ESP_LOGI(TAG, "MQTT publish");
 
   //  printf("client: %p\r\n",(char*)client);
-    esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+    esp_mqtt_client_publish(client, topic, data, strlen(data), 1, 0);
     //ESP_ERROR_CHECK(mqtt_publish(client,topic,data,strlen(data),1,0));
 }
 
@@ -72,8 +73,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
         // Publish a message to a topic after subscribing
-        snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", PUB);
-        mqtt_publish(client, cmd, "Hello MQTT", 10, 1, 0);
+        //mqtt_publish(client, cmd, "Hello MQTT", 10, 1, 0);
+        if(first_pub_version==false)
+        {
+         mqtt_publish_version(HW_VERSION,FW_VERSION,0);
+         first_pub_version=true;
+        }
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
@@ -159,14 +164,21 @@ void mqtt_publish_version(char *verHW,char *verFW,int status){
     }
     else {
         // if(read_enable){
-        //     strcpy(buffer,json_encrypted);
+        strcpy(buffer,json_encrypted);
         //     xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
         // }
         // else {
         //     snprintf(cmd,256,"%s/SmartEVsafe",PUB);
         //     mqtt_pub(cmd,json_encrypted);
         // }
+        if(first_pub_version){
         xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        }
+        else
+        {
+        snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", PUB);
+        mqtt_publish(client,cmd,buffer,strlen(buffer),1,0);
+        }
     }
     free(json_encrypted);
 }
