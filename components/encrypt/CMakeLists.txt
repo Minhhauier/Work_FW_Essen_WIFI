@@ -15,5 +15,6 @@ idf_component_register(
             control_led  
             control_relay
             drivers
+            mqtt_wifi
             
 )

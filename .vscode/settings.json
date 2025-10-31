@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "system_manage.h": "c",
+        "mqtt_wifi.h": "c",
+        "config_parameter.h": "c"
     }
 }

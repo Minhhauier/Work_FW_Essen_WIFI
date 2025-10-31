@@ -77,7 +77,7 @@ void convert_to_json(const char *data) {
             unsigned char *Data_json = decrypt_data(hex_iv, hex_data, hex_tag);
            // printf("rx1: %s\r\n", Data_json);
             snprintf(final_data, sizeof(final_data), "%s:%s}", mess, Data_json);
-            printf("Data received: %s\r\n", final_data);
+           // printf("Data received: %s\r\n", final_data);
             printf("===\r\n");
             parse_json((const char *)final_data);
             free(hex_iv);

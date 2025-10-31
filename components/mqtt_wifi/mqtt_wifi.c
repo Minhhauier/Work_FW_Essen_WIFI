@@ -20,27 +20,42 @@ static char *mqtt_password = "password";
 static char json[1024] = "";
 static char buffer[1024] = "";
 static char cmd[256];
+RTC_DATA_ATTR static esp_mqtt_client_handle_t client;
 
-static esp_err_t mqtt_subscribe(esp_mqtt_client_handle_t client, const char *topic, int qos)
+static esp_err_t mqtt_subscribe(esp_mqtt_client_handle_t client_id, const char *topic, int qos)
 {
-    int msg_id = esp_mqtt_client_subscribe_single(client, topic, qos);
+    int msg_id = esp_mqtt_client_subscribe_single(client_id, topic, qos);
     ESP_LOGI(TAG, "Subscribed to topic %s with message ID: %d", topic, msg_id);
-    if(msg_id == -1)    return ESP_OK;
-    else                return ESP_FAIL;
+    if(msg_id == -1)    return ESP_FAIL;
+    else                return ESP_OK;
 
 }
-static esp_err_t mqtt_publish(esp_mqtt_client_handle_t client, const char *topic, const char *data, int len, int qos, int retain)
+static esp_err_t mqtt_publish(esp_mqtt_client_handle_t client_id, const char *topic, const char *data, int len, int qos, int retain)
 {
-    int msg_id = esp_mqtt_client_publish(client, topic, data, len, qos, retain);
+    int msg_id = esp_mqtt_client_publish(client_id, topic, data, len, qos, retain);
     ESP_LOGI(TAG, "Published message with ID: %d", msg_id);
     if(msg_id == -1)    return ESP_OK;
     else                return ESP_FAIL;
+}
+void mqtt_publish_data(char *data,char *topic){
+    //snprintf(mqtt_client_id, sizeof(mqtt_client_id), "%s_%s",DEVICE_NAME,device_name);
+    if(client==NULL && client){
+        ESP_LOGE(TAG, "MQTT client is not initialized");
+        return;
+    }
+    else ESP_LOGI(TAG, "MQTT publish");
+
+  //  printf("client: %p\r\n",(char*)client);
+    esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+    //ESP_ERROR_CHECK(mqtt_publish(client,topic,data,strlen(data),1,0));
 }
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     esp_mqtt_event_handle_t event = event_data;
     esp_mqtt_client_handle_t client = event->client;
+    // // client = event->client;
+   //  printf("client: %p\r\n",( char * )client);
     // your_context_t *context = handler_args;
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
@@ -91,7 +106,7 @@ void mqtt_init(char *mqtt_address, char *client_id,char *username, char *passwor
     .credentials.authentication.password = password,
     .session.keepalive = 120,
     };
-    esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+    client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
     esp_mqtt_client_start(client);
 }

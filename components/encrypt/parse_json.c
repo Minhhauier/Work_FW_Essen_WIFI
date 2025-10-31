@@ -14,6 +14,7 @@
 #include "control_led.h"
 #include "control_relay.h"
 #include "gpio_cf.h"
+#include "mqtt_wifi.h"
 
 #define GATE_STATE_TAG "GATE_STATE"
 int control_signal=0;
@@ -44,18 +45,18 @@ void parse_json(const char *json_str) {
             if (cJSON_IsNumber(command_type)) {
                 int cmd_type = command_type->valueint;
                 if (cmd_type == 101) {
-                    const cJSON *gun1 = cJSON_GetObjectItemCaseSensitive(data, "gun1");
-                    const cJSON *gun2 = cJSON_GetObjectItemCaseSensitive(data, "gun2");
-                    const cJSON *gun3 = cJSON_GetObjectItemCaseSensitive(data, "gun3");
-                    const cJSON *gun4 = cJSON_GetObjectItemCaseSensitive(data, "gun4");
-                    const cJSON *gun5 = cJSON_GetObjectItemCaseSensitive(data, "gun5");
-                    const cJSON *gun6 = cJSON_GetObjectItemCaseSensitive(data, "gun6");
-                    // const cJSON *gun1 = cJSON_GetObjectItemCaseSensitive(data_new, "gun1");
-                    // const cJSON *gun2 = cJSON_GetObjectItemCaseSensitive(data_new, "gun2");
-                    // const cJSON *gun3 = cJSON_GetObjectItemCaseSensitive(data_new, "gun3");
-                    // const cJSON *gun4 = cJSON_GetObjectItemCaseSensitive(data_new, "gun4");
-                    // const cJSON *gun5 = cJSON_GetObjectItemCaseSensitive(data_new, "gun5");
-                    // const cJSON *gun6 = cJSON_GetObjectItemCaseSensitive(data_new, "gun6");
+                    // const cJSON *gun1 = cJSON_GetObjectItemCaseSensitive(data, "gun1");
+                    // const cJSON *gun2 = cJSON_GetObjectItemCaseSensitive(data, "gun2");
+                    // const cJSON *gun3 = cJSON_GetObjectItemCaseSensitive(data, "gun3");
+                    // const cJSON *gun4 = cJSON_GetObjectItemCaseSensitive(data, "gun4");
+                    // const cJSON *gun5 = cJSON_GetObjectItemCaseSensitive(data, "gun5");
+                    // const cJSON *gun6 = cJSON_GetObjectItemCaseSensitive(data, "gun6");
+                    const cJSON *gun1 = cJSON_GetObjectItemCaseSensitive(data_new, "gun1");
+                    const cJSON *gun2 = cJSON_GetObjectItemCaseSensitive(data_new, "gun2");
+                    const cJSON *gun3 = cJSON_GetObjectItemCaseSensitive(data_new, "gun3");
+                    const cJSON *gun4 = cJSON_GetObjectItemCaseSensitive(data_new, "gun4");
+                    const cJSON *gun5 = cJSON_GetObjectItemCaseSensitive(data_new, "gun5");
+                    const cJSON *gun6 = cJSON_GetObjectItemCaseSensitive(data_new, "gun6");
                     const cJSON *V = cJSON_GetObjectItemCaseSensitive(data_new, "V");
                     if (gun1 != NULL) {
                         const cJSON *action = cJSON_GetObjectItemCaseSensitive(gun1, "action");
@@ -251,7 +252,7 @@ void parse_json(const char *json_str) {
                     }
                     if(V!=NULL){
                     int value = V->valueint;
-                     //respond_to_mqtt(value, 1, 208);
+                    mqtt_respond_change_gate(value, 1, 208);
                     }
                     
                      //xQueueSend(publish_queue_handle,"Hardware_respond",portMAX_DELAY);
