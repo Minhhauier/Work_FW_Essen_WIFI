@@ -9,6 +9,8 @@
 #include "setup_wifi.h"
 #include "mqtt_wifi.h"
 #include "system_manage.h"
+#include "control_led.h"
+#include "gpio_cf.h"
 
 #define TAG "MAIN"
 char device_name[25];
@@ -29,6 +31,8 @@ void app_main(void)
     ESP_LOGI(TAG,"==Device name: %s==",device_name);
     ESP_LOGI(TAG, "Starting setup_wifi_init()");
     setup_wifi_init();
+    all_led_by_status(0);
+    config_gpio_detect_zero();
     while (s_connected == false)
     {
         vTaskDelay(100 / portTICK_PERIOD_MS);

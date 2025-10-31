@@ -3,16 +3,16 @@
 
 #include "control_relay.h"
 #include "config_parameter.h"
-#include "config_gpio.h"
+#include "gpio_cf.h"
 
 //config
 void power_read_init() {
-    uint64_t pins_mask = (1ULL << GATE_NUM_1) |
-                         (1ULL << GATE_NUM_2) |
-                         (1ULL << GATE_NUM_3) |
-                         (1ULL << GATE_NUM_4) |
-                         (1ULL << GATE_NUM_5) |
-                         (1ULL << GATE_NUM_6);
+    uint64_t pins_mask = (1ULL << GATE_1) |
+                         (1ULL << GATE_2) |
+                         (1ULL << GATE_3) |
+                         (1ULL << GATE_4) |
+                         (1ULL << GATE_5) |
+                         (1ULL << GATE_6);
 
     gpio_config_t io_conf = {
         .pin_bit_mask = pins_mask,
@@ -89,10 +89,10 @@ gate_state_t get_gate_state(int gate_num) {
     return GATE_DISCHARGE;
 }
 void off_all_gate(){
-    set_gate_state(GATE_NUM_1, GATE_DISCHARGE);
-    set_gate_state(GATE_NUM_2, GATE_DISCHARGE);
-    set_gate_state(GATE_NUM_3, GATE_DISCHARGE);
-    set_gate_state(GATE_NUM_4, GATE_DISCHARGE);
-    set_gate_state(GATE_NUM_5, GATE_DISCHARGE);
-    set_gate_state(GATE_NUM_6, GATE_DISCHARGE);
+    set_gate_state(GATE_1, GATE_DISCHARGE);
+    set_gate_state(GATE_2, GATE_DISCHARGE);
+    set_gate_state(GATE_3, GATE_DISCHARGE);
+    set_gate_state(GATE_4, GATE_DISCHARGE);
+    set_gate_state(GATE_5, GATE_DISCHARGE);
+    set_gate_state(GATE_6, GATE_DISCHARGE);
 }

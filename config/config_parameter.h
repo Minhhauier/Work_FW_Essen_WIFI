@@ -1,6 +1,8 @@
 #ifndef CONFIG_PARAMETER_H
 #define CONFIG_PARAMETER_H
 
+#include <driver/gpio.h>
+
 // DEVICE_PROD for production device, DEVICE_DEV for development device
 #define DEVICE_DEV 1
 
@@ -23,12 +25,12 @@
 #define BUF_SIZE_MQTT 1024 
 
 //config parameter for relay
-#define GATE_NUM_1              GPIO_NUM_23
-#define GATE_NUM_2              GPIO_NUM_22
-#define GATE_NUM_3              GPIO_NUM_19
-#define GATE_NUM_4              GPIO_NUM_18
-#define GATE_NUM_5              GPIO_NUM_26
-#define GATE_NUM_6              GPIO_NUM_4
+#define GATE_1                  GPIO_NUM_23
+#define GATE_2                  GPIO_NUM_22
+#define GATE_3                  GPIO_NUM_19
+#define GATE_4                  GPIO_NUM_18
+#define GATE_5                  GPIO_NUM_26
+#define GATE_6                  GPIO_NUM_4
 
 #define RELAY_SLCH              GPIO_NUM_25
 #define RELAY_SLCK              GPIO_NUM_33

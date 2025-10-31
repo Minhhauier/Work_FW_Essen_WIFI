@@ -11,6 +11,9 @@ idf_component_register(
             json
 
         PRIV_REQUIRES
-            main    
+            main  
+            control_led  
+            control_relay
+            drivers
             
 )

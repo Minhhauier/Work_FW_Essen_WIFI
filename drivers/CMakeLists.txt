@@ -2,12 +2,13 @@ file(GLOB SRCS "*.c")
 
 idf_component_register(
         SRCS ${SRCS}
-        INCLUDE_DIRS include
+        INCLUDE_DIRS "."
         REQUIRES
             driver
             freertos
             config
+            esp_timer
 
-        PRIV_REQUIRES    
-            drivers
+            control_relay
 )
+
