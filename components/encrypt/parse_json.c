@@ -15,6 +15,7 @@
 #include "control_relay.h"
 #include "gpio_cf.h"
 #include "mqtt_wifi.h"
+#include "ota_wifi.h"
 
 #define GATE_STATE_TAG "GATE_STATE"
 int control_signal=0;
@@ -293,28 +294,13 @@ void parse_json(const char *json_str) {
                         printf("->updating %s version\r\n", v);
                     }
                     if (cJSON_IsString(link2)) {
-                        char *lnk2 = link2->valuestring;
-                        printf("->updating from %s\r\n", lnk2);
+                        char *lnk1 = link1->valuestring;
+                        printf("->updating from %s\r\n", lnk1);
                         printf("Starting download........\r\n");
-                       // publish_version(HW_VERSION,FW_VERSION,2);
-                        //vTaskDelay(3000/portTICK_PERIOD_MS);
-                        //read_enable=false;
-                        //pzem_read_enable = false;
-                        //vTaskDelay(2000/portTICK_PERIOD_MS);
-                       // if (pzem_ds18b20_task != NULL) {
-                       //     vTaskDelete(pzem_ds18b20_task);
-                    //         pzem_ds18b20_task=NULL;
-                    //     }
-                    //     if(read_sim_uart_task !=NULL){
-                    //         vTaskDelete(read_sim_uart_task);
-                    //         read_sim_uart_task=NULL;
-                    //     }
-                    //    // uart_driver_delete(UART_NUM_2);
-                    //     send_at_get_respond("AT\r\n",1000); 
-                    //     send_at_get_respond("AT+QMTCLOSE=1\r\n",5000);
-                    //     vTaskDelay(1000/portTICK_PERIOD_MS);
-                    //     OTA_from_link_v2(lnk2,300000); //https://raw.githubusercontent.com/Minhhauier/IOT_project/main/blink.bin
-                        esp_restart();
+                        on_ota=true;
+                        mqtt_publish_version(HW_VERSION,FW_VERSION,1);
+                        do_firmware_upgrade(lnk1);
+                        //esp_restart();
                     }
                 }
             }

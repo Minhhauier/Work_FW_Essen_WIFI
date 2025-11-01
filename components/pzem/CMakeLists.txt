@@ -5,17 +5,12 @@ idf_component_register(
         INCLUDE_DIRS include
         REQUIRES
             driver
+            drivers
             freertos
             config
-            mbedtls
-            json
-
-        PRIV_REQUIRES
-            main  
-            control_led  
-            control_relay
-            drivers
+            esp_timer
+            
             mqtt_wifi
-            ota_wifi
-
+            control_led
+            control_relay
 )

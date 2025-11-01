@@ -14,4 +14,6 @@ idf_component_register(SRCS "main.c" "system_manage.c"
                         drivers
                         control_led
                         control_relay
+                        ota_wifi
+                        pzem
 )
