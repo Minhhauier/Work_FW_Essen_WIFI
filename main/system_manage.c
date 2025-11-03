@@ -27,7 +27,7 @@ void task_system_manage(void *pvParameter)
     while (1)
     {
         if(xQueueReceive(mqtt_queue_handle, data_receive, portMAX_DELAY) == pdTRUE) {
-           //  ESP_LOGI(TAG, "Data received from MQTT queue: %s", data_receive);
+            ESP_LOGI(TAG, "Data received from MQTT queue: %s", data_receive);
             convert_to_json(data_receive);
         }
         if(xQueueReceive(publish_queue_handle, data_receive, portMAX_DELAY) == pdTRUE) {

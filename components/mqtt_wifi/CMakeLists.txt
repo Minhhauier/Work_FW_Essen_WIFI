@@ -6,8 +6,12 @@ idf_component_register(
     REQUIRES
         config
         mqtt
+        driver
+        esp_wifi
         # espressif_mqtt
     PRIV_REQUIRES
         main
         encrypt
+        drivers
+        setup_wifi
 )

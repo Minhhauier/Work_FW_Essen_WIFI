@@ -14,6 +14,7 @@
 #include <ctype.h>
 
 #include "setup_wifi.h"
+#include "gpio_cf.h"
 /* ESP_ERROR_CHECK stản dấu kiểm tra lỗi của các hàm ESP-IDF.
 Trả về mã lỗi nếu hàm trả về khác ESP_OK (0) và in thông báo lỗi.
 */
@@ -26,67 +27,131 @@ static const char *TAG = "ESP_WEB";
 #define WIFI_MAXIMUM_RETRY 5
 static int s_retry_num = 0;
 
-// ---------- HTML giao diện cho cấu hình Wi-Fi (mobile friendly) ----------
-static const char *html_page =
-"<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
-"<meta charset='UTF-8'><title>ESP32 WiFi Setup</title>"
-"<style>body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:12px;background:#f6f6f6}"
-"h2{margin:8px 0} .net{padding:10px;margin:6px 0;background:#fff;border-radius:6px;display:flex;justify-content:space-between;align-items:center}"
-"button{padding:8px 12px;border:none;background:#007AFF;color:#fff;border-radius:6px} input{padding:8px;width:100%;box-sizing:border-box;margin-top:6px} #status{margin-top:10px}</style>"
-"</head><body>"
-"<h2>ESP32 Wi-Fi Setup</h2>"
-"<div id=wifiList>Loading networks...</div>"
-"<div style='margin-top:10px'>Selected: <span id=sel>None</span></div>"
-"<div id=form style='margin-top:10px;display:none'>"
-"<input id=pwd type=password placeholder='Password' />"
-"<div style='margin-top:8px'><button id=connect>Connect</button></div>"
-"</div>"
-"<div id=status></div>"
-"<script>\n"
-"async function scan(){\n"
-"  document.getElementById('wifiList').innerText='Scanning...';\n"
-"  try{\n"
-"    let r=await fetch('/scan');\n"
-"    let j=await r.json();\n" 
-"    let html='';\n"
-"    if(j.length==0) html='<div>No networks found</div>';\n"
-"    for(let i=0;i<j.length;i++){\n"
-"      let s=j[i].ssid;\n"
-"      html+='<div class=\"net\"><span>'+s+'</span><button onclick=\"select(\\''+encodeURIComponent(s)+'\\')\">Select</button></div>';\n"
-"    }\n"
-"    document.getElementById('wifiList').innerHTML=html;\n"
-"  }catch(e){document.getElementById('wifiList').innerText='Scan failed';}\n"
+// JavaScript từ file evsafe-onboarding.html được nối thành string để embed vào ESP32
+
+// JavaScript từ file evsafe-onboarding.html được nối thành C string để embed vào ESP32
+
+const char* html_page = 
+"let wifiNetworks = [];\n"
+"let selectedWifi = null;\n"
+"let lastJsonResponse = null;\n"
+"\n"
+"function showJsonResponse() {\n"
+"  if (lastJsonResponse) {\n"
+"    document.getElementById('jsonContent').textContent = JSON.stringify(lastJsonResponse, null, 2);\n"
+"  } else {\n"
+"    document.getElementById('jsonContent').textContent = 'Chưa có dữ liệu JSON. Hãy quét WiFi trước.';\n"
+"  }\n"
+"  document.getElementById('jsonPopup').style.display = 'flex';\n"
 "}\n"
-"function select(ssid){\n"
-"  document.getElementById('sel').innerText=decodeURIComponent(ssid);\n"
-"  document.getElementById('form').style.display='block';\n"
-"  window._selected=decodeURIComponent(ssid);\n"
+"\n"
+"function closeJsonPopup() {\n"
+"  document.getElementById('jsonPopup').style.display = 'none';\n"
 "}\n"
-"document.getElementById('connect').addEventListener('click', async ()=>{\n"
-"  let ssid=window._selected; let pwd=document.getElementById('pwd').value;\n"
-"  document.getElementById('status').innerText='Connecting...';\n"
-"  let body='ssid='+encodeURIComponent(ssid)+'&pass='+encodeURIComponent(pwd);\n"
-"  try{\n"
-"    let r=await fetch('/connect',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});\n"
-"    let t=await r.text();\n"
-"    document.getElementById('status').innerText=t;\n"
-"    // poll status\n"
-"    for(let i=0;i<10;i++){\n"
-"      await new Promise(r=>setTimeout(r,1000));\n"
-"      let s=await (await fetch('/status')).text();\n"
-"      if(s.indexOf('connected')>=0){document.getElementById('status').innerText='Connected!';break}\n"
-"      document.getElementById('status').innerText='Trying... ('+(i+1)+')';\n"
+"\n"
+"async function scanWifiNetworks() {\n"
+"  const wifiList = document.getElementById('wifiList');\n"
+"  wifiList.innerHTML = '<div style=\"text-align: center; padding: 20px; color: #888;\">Đang quét WiFi...</div>';\n"
+"  try {\n"
+"    const response = await fetch('/scan');\n"
+"    const networks = await response.json();\n"
+"    lastJsonResponse = {\n"
+"      timestamp: new Date().toISOString(),\n"
+"      url: '/scan',\n"
+"      status: response.status,\n"
+"      data: networks\n"
+"    };\n"
+"    if (networks.length === 0) {\n"
+"      wifiList.innerHTML = '<div style=\"text-align: center; padding: 20px; color: #888;\">Không tìm thấy mạng WiFi nào</div>';\n"
+"      return;\n"
 "    }\n"
-"  }catch(e){document.getElementById('status').innerText='Connect request failed';}\n"
+"    wifiNetworks = networks;\n"
+"    generateWifiList();\n"
+"  } catch (error) {\n"
+"    console.error('Scan failed:', error);\n"
+"    wifiList.innerHTML = '<div style=\"text-align: center; padding: 20px; color: #ff6b6b;\">Quét WiFi thất bại. Đang sử dụng dữ liệu mẫu.</div>';\n"
+"    setTimeout(() => { generateWifiList(); }, 2000);\n"
+"  }\n"
+"}\n"
+"\n"
+"function getSignalBars(strength) {\n"
+"  const bars = ['📶', '📶📶', '📶📶📶', '📶📶📶📶', '📶📶📶📶📶'];\n"
+"  return bars[strength - 1] || '📶';\n"
+"}\n"
+"\n"
+"function generateWifiList() {\n"
+"  const wifiList = document.getElementById('wifiList');\n"
+"  wifiList.innerHTML = '';\n"
+"  wifiNetworks.forEach((network, index) => {\n"
+"    const wifiItem = document.createElement('div');\n"
+"    wifiItem.className = 'wifi-item';\n"
+"    wifiItem.onclick = () => openWifiPopup(network);\n"
+"    const lockIcon = network.hasPassword ? '🔒' : '';\n"
+"    const signalBars = getSignalBars(network.signalStrength);\n"
+"    wifiItem.innerHTML = `<p class=\"wifi-name\">${network.ssid || network.name}</p><div class=\"wifi-icons\"><span style=\"margin-right: 4px;\">${lockIcon}</span><span class=\"wifi-icon\" style=\"font-size: 12px;\">${signalBars}</span></div>`;\n"
+"    wifiList.appendChild(wifiItem);\n"
+"  });\n"
+"}\n"
+"\n"
+"function openWifiPopup(network) {\n"
+"  selectedWifi = network;\n"
+"  const networkName = network.ssid || network.name;\n"
+"  document.getElementById('popupTitle').textContent = networkName;\n"
+"  if (network.hasPassword) {\n"
+"    document.getElementById('popupSubtitle').textContent = 'Nhập mật khẩu để kết nối';\n"
+"    document.getElementById('wifiPassword').style.display = 'block';\n"
+"    document.getElementById('wifiPassword').focus();\n"
+"  } else {\n"
+"    document.getElementById('popupSubtitle').textContent = 'Mạng WiFi không có mật khẩu';\n"
+"    document.getElementById('wifiPassword').style.display = 'none';\n"
+"  }\n"
+"  document.getElementById('wifiPopup').style.display = 'flex';\n"
+"}\n"
+"\n"
+"function closeWifiPopup() {\n"
+"  document.getElementById('wifiPopup').style.display = 'none';\n"
+"  document.getElementById('wifiPassword').value = '';\n"
+"  selectedWifi = null;\n"
+"}\n"
+"\n"
+"function connectWifi() {\n"
+"  if (selectedWifi) {\n"
+"    const password = document.getElementById('wifiPassword').value;\n"
+"    const networkName = selectedWifi.ssid || selectedWifi.name;\n"
+"    if (selectedWifi.hasPassword && !password) {\n"
+"      alert('Vui lòng nhập mật khẩu WiFi');\n"
+"      return;\n"
+"    }\n"
+"    alert(`Đang kết nối tới ${networkName}...`);\n"
+"    closeWifiPopup();\n"
+"    console.log('Connecting to:', networkName, 'with password:', password);\n"
+"    console.log('Network info:', selectedWifi);\n"
+"  }\n"
+"}\n"
+"\n"
+"document.getElementById('wifiPopup').addEventListener('click', function(e) {\n"
+"  if (e.target === this) { closeWifiPopup(); }\n"
 "});\n"
-"window.onload=scan;\n"
-"</script></body></html>";
+"\n"
+"document.getElementById('jsonPopup').addEventListener('click', function(e) {\n"
+"  if (e.target === this) { closeJsonPopup(); }\n"
+"});\n"
+"\n"
+"document.getElementById('wifiPassword').addEventListener('keypress', function(e) {\n"
+"  if (e.key === 'Enter') { connectWifi(); }\n"
+"});\n"
+"\n"
+"document.addEventListener('DOMContentLoaded', function() {\n"
+"  scanWifiNetworks();\n"
+"});\n";
 
 
 // ---------- Handler trang chính ----------
 static esp_err_t root_get_handler(httpd_req_t *req) 
 {
     httpd_resp_set_type(req, "text/html");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     httpd_resp_send(req, html_page, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
@@ -112,57 +177,86 @@ static esp_err_t action_handler(httpd_req_t *req)
 }
 
 // ---------- WiFi scan handler (returns JSON array of SSIDs) ----------
+// static esp_err_t scan_handler(httpd_req_t *req)
+// {
+//     wifi_scan_config_t scan_config = {
+//         .ssid = 0, // 0: quét tất cả SSID, không chỉ định SSID cụ thể
+//         .bssid = 0, // 0: Bỏ qua không lọc theo BSSID 
+//         .channel = 0, // 0: quét tất cả các kênh
+//         .show_hidden = false // false: không hiển thị mạng ẩn
+//     };
+//     ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true)); // blocking
+//     uint16_t ap_num = 20;  // tối đa 20 AP (access point - điểm truy cập)
+//     wifi_ap_record_t ap_info[20]; 
+//     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_num, ap_info));
+
+//     // build simple JSON
+//     httpd_resp_set_type(req, "application/json");
+//     httpd_resp_sendstr_chunk(req, "[");
+//     for (int i = 0; i < ap_num; i++) {
+//         char esc_ssid[33];
+//         strncpy(esc_ssid, (char *)ap_info[i].ssid, sizeof(esc_ssid)-1);
+//         esc_ssid[32]=0;
+//         char buf[128];
+//         snprintf(buf, sizeof(buf), "{\"ssid\":\"%s\"}", esc_ssid);
+//         httpd_resp_sendstr_chunk(req, buf);
+//         if (i < ap_num - 1) httpd_resp_sendstr_chunk(req, ",");
+//     }
+//     httpd_resp_sendstr_chunk(req, "]");
+//     httpd_resp_sendstr_chunk(req, NULL);
+//     return ESP_OK;
+// }
 static esp_err_t scan_handler(httpd_req_t *req)
 {
     wifi_scan_config_t scan_config = {
-        .ssid = 0, // 0: quét tất cả SSID, không chỉ định SSID cụ thể
-        .bssid = 0, // 0: Bỏ qua không lọc theo BSSID 
-        .channel = 0, // 0: quét tất cả các kênh
-        .show_hidden = false // false: không hiển thị mạng ẩn
+        .ssid = 0,
+        .bssid = 0, 
+        .channel = 0,
+        .show_hidden = false
     };
-    ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true)); // blocking
-    uint16_t ap_num = 20;  // tối đa 20 AP (access point - điểm truy cập)
-    wifi_ap_record_t ap_info[20]; 
+    
+    ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
+    uint16_t ap_num = 20;
+    wifi_ap_record_t ap_info[20];
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_num, ap_info));
 
-    // build simple JSON
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr_chunk(req, "[");
+    
     for (int i = 0; i < ap_num; i++) {
         char esc_ssid[33];
-        strncpy(esc_ssid, (char *)ap_info[i].ssid, sizeof(esc_ssid)-1);
-        esc_ssid[32]=0;
-        char buf[128];
-        snprintf(buf, sizeof(buf), "{\"ssid\":\"%s\"}", esc_ssid);
+        strncpy(esc_ssid, (char*)ap_info[i].ssid, sizeof(esc_ssid)-1);
+        esc_ssid[32] = 0;
+        
+        // Tính signal strength (1-5 bars)
+        int signal_strength = 1;
+        if (ap_info[i].rssi >= -50) signal_strength = 5;      // Excellent
+        else if (ap_info[i].rssi >= -60) signal_strength = 4; // Good  
+        else if (ap_info[i].rssi >= -70) signal_strength = 3; // Fair
+        else if (ap_info[i].rssi >= -80) signal_strength = 2; // Poor
+        else signal_strength = 1;                             // Very poor
+        
+        // Kiểm tra có cần password không
+        bool has_password = (ap_info[i].authmode != WIFI_AUTH_OPEN);
+        
+        char buf[200];
+        snprintf(buf, sizeof(buf), 
+            "{\"ssid\":\"%s\",\"signalStrength\":%d,\"hasPassword\":%s,\"rssi\":%d}", 
+            esc_ssid, 
+            signal_strength,
+            has_password ? "true" : "false",
+            ap_info[i].rssi
+        );
+        
         httpd_resp_sendstr_chunk(req, buf);
         if (i < ap_num - 1) httpd_resp_sendstr_chunk(req, ",");
     }
+    
     httpd_resp_sendstr_chunk(req, "]");
     httpd_resp_sendstr_chunk(req, NULL);
     return ESP_OK;
 }
 
-// ---------- Event handlers ----------
-// static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
-// {
-//     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-//         ESP_LOGI(TAG, "WiFi disconnected");
-//         s_connected = false;
-//         xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
-
-//         esp_wifi_connect();
-//         ESP_LOGI(TAG, "Reconnecting to WiFi...");
-        
-//         static int retry_count = 0;
-//         if(retry_count < 5) {
-//             retry_count++;
-//         } else {
-//             ESP_LOGI(TAG, "Max retries reached - Re-enabling AP interface for configuration");
-//             ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
-//             retry_count = 0;
-//         }
-//     }
-// }
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) // arg: Dữ liệu phụ truyền vào khi đk handle, 
 //event_base: Nhóm sự kiện (WIFI_EVENT,MQTT_EVENT,...)
 // event_id: id cụ thể của sự kiện(WIFI_EVENT_STA_START, WIFI_EVENT_STA_DISCONNECTED,...),
@@ -184,21 +278,38 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
             // Bật lại chế độ AP
             wifi_config_t wifi_config = {
                 .ap = {
-                    .ssid = "ESP32_TEST",
+                    .ssid = "CHTLAB-EVsafe",
                     .ssid_len = 0,
                     .channel = 1,
-                    .password = "12345678",
+                    .password = "",
                     .max_connection = 4,
-                    .authmode = WIFI_AUTH_WPA_WPA2_PSK
+                    .authmode = WIFI_AUTH_OPEN
                 },
             };
             ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
             ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
-            ESP_LOGI(TAG, "AP mode re-enabled. SSID: ESP32_TEST, Password: 12345678");
+            ESP_LOGI(TAG, "AP mode re-enabled. SSID: CHTLAB-EVsafe");
         }
     }
 }
-
+void open_webserver()
+{
+    ESP_LOGI(TAG, "Enabling AP mode for reconfiguration");
+    // Bật lại chế độ AP
+    wifi_config_t wifi_config = {
+        .ap = {
+            .ssid = "CHTLAB-EVsafe",
+            .ssid_len = 0,
+            .channel = 1,
+            .password = "",
+            .max_connection = 4,
+            .authmode = WIFI_AUTH_OPEN
+        },
+    };
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+    ESP_LOGI(TAG, "AP mode re-enabled. SSID: CHTLAB-EVsafe");
+}
 static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) // internet protocol (IP)
 {
     if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
@@ -287,10 +398,10 @@ static esp_err_t connect_handler(httpd_req_t *req)
         httpd_resp_sendstr(req, "Missing SSID");
         return ESP_OK;
     }
-    ESP_LOGI(TAG, "Raw SSID: %s, PASS: %s", ssid, pass);
+//    ESP_LOGI(TAG, "Raw SSID: %s, PASS: %s", ssid, pass);
     url_decode(ssid, ssid);
     url_decode(pass, pass);
-    ESP_LOGI(TAG, "Decoded SSID: %s, PASS: %s", ssid, pass);
+    // ESP_LOGI(TAG, "Decoded SSID: %s, PASS: %s", ssid, pass);
     save_credentials(ssid, pass);
     wifi_connect_sta(ssid, pass);
     httpd_resp_sendstr(req, "Connecting (saved)");
@@ -300,8 +411,14 @@ static esp_err_t connect_handler(httpd_req_t *req)
 // ---------- /status handler ----------
 static esp_err_t status_handler(httpd_req_t *req)
 {
-    if (s_connected) httpd_resp_sendstr(req, "connected");
-    else httpd_resp_sendstr(req, "disconnected");
+    if (s_connected){
+        gpio_set_level(LED_DECTEC_MQTT,1);
+        httpd_resp_sendstr(req, "connected");
+    }
+    else {
+        gpio_set_level(LED_DECTEC_MQTT,0);
+        httpd_resp_sendstr(req, "disconnected");
+    }
     return ESP_OK;
 }
 
@@ -345,12 +462,12 @@ static void wifi_init_softap(void)
 
     wifi_config_t wifi_config = {
         .ap = {
-            .ssid = "ESP32_TEST",
+            .ssid = "CHTLAB-EVsafe",
             .ssid_len = 0,
             .channel = 1,
-            .password = "12345678",
+            .password = "",
             .max_connection = 4,
-            .authmode = WIFI_AUTH_WPA_WPA2_PSK
+            .authmode = WIFI_AUTH_OPEN,
         },
     };
 
@@ -358,11 +475,11 @@ static void wifi_init_softap(void)
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG, " WiFi AP started. SSID: ESP32_TEST  PASS: 12345678");
+    ESP_LOGI(TAG, " WiFi AP started. SSID: CHTLAB-EVsafe");
 }
 
 // ---------- Try to load saved credentials and connect on boot ----------
-static void try_connect_saved() // thử kết nối với các wifi đã lưu khi khởi động 
+void try_connect_saved() // thử kết nối với các wifi đã lưu khi khởi động 
 {
     nvs_handle_t h;
     if (nvs_open("storage", NVS_READONLY, &h) == ESP_OK) {
@@ -384,7 +501,12 @@ static void try_connect_saved() // thử kết nối với các wifi đã lưu k
 
 void setup_wifi_init(void)
 {
-    ESP_ERROR_CHECK(nvs_flash_init());
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
     ESP_ERROR_CHECK(esp_netif_init()); // Khởi tạo mạng ESP
     ESP_ERROR_CHECK(esp_event_loop_create_default()); // Nhận respond từ các sự kiện (wifi, mqtt,...)
 

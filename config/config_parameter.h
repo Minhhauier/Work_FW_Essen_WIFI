@@ -22,7 +22,7 @@
 #define FW_VERSION      "1.0.5"
 
 //config parameter mqtt
-#define BUF_SIZE_MQTT 1024 
+#define BUF_SIZE_MQTT 1024
 
 //config parameter for relay
 #define GATE_1                  GPIO_NUM_23

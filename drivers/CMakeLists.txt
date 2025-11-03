@@ -10,5 +10,6 @@ idf_component_register(
             esp_timer
 
             control_relay
+            setup_wifi
 )
 

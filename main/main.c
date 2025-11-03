@@ -14,6 +14,7 @@
 #include "ota_wifi.h"
 #include "pzem.h"
 
+
 #define TAG "MAIN"
 char device_name[25];
 
@@ -35,6 +36,8 @@ void app_main(void)
     setup_wifi_init();
     all_led_by_status(0);
     config_gpio_detect_zero();
+    config_gpio_wifi_menu_config();
+    config_gpio_led();
     while (s_connected == false)
     {
         vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -45,8 +48,19 @@ void app_main(void)
     xTaskCreate(&task_system_manage, "system_manage_task", 1024*4, NULL, 5, NULL);
     xTaskCreate(&pzem_task,"pzem task", 1024*4, NULL, 5, NULL);
     do_firmware_upgrade(NULL);
+
     while (1)
     {
+        if(gpio_get_level(GPIO_WIFI_CONFIG)==0)
+        {
+            while (gpio_get_level(GPIO_WIFI_CONFIG)==0)
+            {
+                vTaskDelay(100/portTICK_PERIOD_MS);
+            }
+            printf("Open menuconfig\r\n");
+            open_webserver();
+        //    / start_stop_timer();
+        }
         //ESP_LOGI(TAG, "Main task running...");
         vTaskDelay(1000/portTICK_PERIOD_MS);
     }

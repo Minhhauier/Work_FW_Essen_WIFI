@@ -76,7 +76,11 @@ void set_gate_state(int gate_num, gate_state_t state) {
         default:
             return;  // Invalid state 
     }
-    if(control_signal!=1)  relay_set(g_gate_state);
+    if(control_signal!=1) {       
+        relay_set(g_gate_state);
+        printf("Set relay\r\n");
+    }
+    //relay_set(g_gate_state);
 }
 
 gate_state_t get_gate_state(int gate_num) {

@@ -20,15 +20,10 @@
 #define GATE_STATE_TAG "GATE_STATE"
 int control_signal=0;
 
-// void ota_task(char *link){
-//    send_at_get_respond("AT\r\n",1000);
-// //   OTA_from_link(link);
-//    esp_restart();
-//     while(1)
-//     {
-//         vTaskDelay(3000/portTICK_PERIOD_MS);
-//     }
-// }
+#define CHARGE 1
+#define DISCHARGE 2
+#define WAIT 3 
+
 void parse_json(const char *json_str) {
     cJSON *root = cJSON_Parse(json_str);
     if (root == NULL) {
@@ -65,21 +60,21 @@ void parse_json(const char *json_str) {
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun1, "limit_time");
                         if (cJSON_IsNumber(action)) {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == DISCHARGE) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 1: Stop");
                                 charging_led_by_status(GATE_NUM_1, LED_READY);
-                                set_gate_state(GATE_1, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                                set_gate_state(GATE_NUM_1, GATE_DISCHARGE);
+                            } else if (act == CHARGE) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 1: Charging");
-                                charging_led_by_status(GATE_NUM_1, LED_CHARGING);
-                                set_gate_state(GATE_1, GATE_CHARGE);
                                 detect_gate=1;
                                 control_signal=1;
+                                charging_led_by_status(GATE_NUM_1, LED_CHARGING);
+                                set_gate_state(GATE_NUM_1, GATE_CHARGE);
                             }
-                            else if (act == 3){
+                            else if (act == WAIT){
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 1: Waiting");
                                 charging_led_by_status(GATE_NUM_1, LED_WAITTING);
-                                set_gate_state(GATE_1, GATE_DISCHARGE);
+                                set_gate_state(GATE_NUM_1, GATE_DISCHARGE);
                             }
                         }
                         if (cJSON_IsNumber(order_time)) {
@@ -97,21 +92,21 @@ void parse_json(const char *json_str) {
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun2, "limit_time");
                         if (cJSON_IsNumber(action)) {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 1) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 2: Stop");
                                 charging_led_by_status(GATE_NUM_2, LED_READY);
-                                set_gate_state(GATE_2, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                                set_gate_state(GATE_NUM_2, GATE_DISCHARGE);
+                            } else if (act == 2) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 2: Charging");
                                 charging_led_by_status(GATE_NUM_2, LED_CHARGING);
-                                set_gate_state(GATE_2, GATE_CHARGE);
+                                set_gate_state(GATE_NUM_2, GATE_CHARGE);
                                 detect_gate=1;
                                 control_signal=1;
                             }
                             else if (act == 3){
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 2: Waiting");
                                 charging_led_by_status(GATE_NUM_2, LED_WAITTING);
-                                set_gate_state(GATE_2, GATE_DISCHARGE);
+                                set_gate_state(GATE_NUM_2, GATE_DISCHARGE);
                             }
                         }
                         if (cJSON_IsNumber(order_time)) {
@@ -129,21 +124,21 @@ void parse_json(const char *json_str) {
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun3, "limit_time");
                         if (cJSON_IsNumber(action)) {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 1) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 3: Stop");
                                 charging_led_by_status(GATE_NUM_3, LED_READY);
-                                set_gate_state(GATE_3, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                                set_gate_state(GATE_NUM_3, GATE_DISCHARGE);
+                            } else if (act == 2) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 3: Charging");
                                 charging_led_by_status(GATE_NUM_3, LED_CHARGING);
-                                set_gate_state(GATE_3, GATE_CHARGE);
+                                set_gate_state(GATE_NUM_3, GATE_CHARGE);
                                 detect_gate=1;
                                 control_signal=1;
                             }
                             else if (act == 3){
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 3: Waiting");
                                 charging_led_by_status(GATE_NUM_3, LED_WAITTING);
-                                set_gate_state(GATE_3, GATE_DISCHARGE);
+                                set_gate_state(GATE_NUM_3, GATE_DISCHARGE);
                             }
                         }
                         if (cJSON_IsNumber(order_time)) {
@@ -161,21 +156,21 @@ void parse_json(const char *json_str) {
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun4, "limit_time");
                         if (cJSON_IsNumber(action)) {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 1) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 4: Stop");
                                 charging_led_by_status(GATE_NUM_4, LED_READY);
-                                set_gate_state(GATE_4, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                                set_gate_state(GATE_NUM_4, GATE_DISCHARGE);
+                            } else if (act == 2) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 4: Charging");
                                 charging_led_by_status(GATE_NUM_4, LED_CHARGING);
-                                set_gate_state(GATE_4, GATE_CHARGE);
+                                set_gate_state(GATE_NUM_4, GATE_CHARGE);
                                 detect_gate=1;
                                 control_signal=1;
                             }
                             else if (act == 3){
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 4: Waiting");
                                 charging_led_by_status(GATE_NUM_4, LED_WAITTING);
-                                set_gate_state(GATE_4, GATE_DISCHARGE);
+                                set_gate_state(GATE_NUM_4, GATE_DISCHARGE);
                             }
                         }
                         if (cJSON_IsNumber(order_time)) {
@@ -193,21 +188,21 @@ void parse_json(const char *json_str) {
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun5, "limit_time");
                         if (cJSON_IsNumber(action)) {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 1) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 5: Stop");
                                 charging_led_by_status(GATE_NUM_5, LED_READY);
-                                set_gate_state(GATE_5, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                                set_gate_state(GATE_NUM_5, GATE_DISCHARGE);
+                            } else if (act == 2) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 5: Charging");
                                 charging_led_by_status(GATE_NUM_5, LED_CHARGING);
-                                set_gate_state(GATE_5, GATE_CHARGE);
+                                set_gate_state(GATE_NUM_5, GATE_CHARGE);
                                 detect_gate=1;
                                 control_signal=1;
                             }
                             else if (act == 3){
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 5: Waiting");
                                 charging_led_by_status(GATE_NUM_5, LED_WAITTING);
-                                set_gate_state(GATE_5, GATE_DISCHARGE);
+                                set_gate_state(GATE_NUM_5, GATE_DISCHARGE);
                             }
                         }
                         if (cJSON_IsNumber(order_time)) {
@@ -225,21 +220,21 @@ void parse_json(const char *json_str) {
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun6, "limit_time");
                         if (cJSON_IsNumber(action)) {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 1) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 6: Stop");
                                 charging_led_by_status(GATE_NUM_6, LED_READY);
-                                set_gate_state(GATE_6, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                                set_gate_state(GATE_NUM_6, GATE_DISCHARGE);
+                            } else if (act == 2) {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 6: Charging");
                                 charging_led_by_status(GATE_NUM_6, LED_CHARGING);
-                                set_gate_state(GATE_6, GATE_CHARGE);
+                                set_gate_state(GATE_NUM_6, GATE_CHARGE);
                                 detect_gate=1;
                                 control_signal=1;
                             }
                             else if (act==3){
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 6: Waiting");
                                 charging_led_by_status(GATE_NUM_6, LED_WAITTING);
-                                set_gate_state(GATE_6, GATE_DISCHARGE);
+                                set_gate_state(GATE_NUM_6, GATE_DISCHARGE);
                             }
                         }
                         if (cJSON_IsNumber(order_time)) {
