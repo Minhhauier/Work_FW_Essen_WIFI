@@ -1,7 +1,7 @@
-file(GLOB SRCS "*.c")
+# file(GLOB SRCS "*.c")
 
 idf_component_register(
-        SRCS ${SRCS}
+        SRCS "pzem.c"
         INCLUDE_DIRS include
         REQUIRES
             driver

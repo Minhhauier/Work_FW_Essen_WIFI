@@ -211,14 +211,9 @@ void pzem_set_address(uint8_t old_addr, uint8_t new_addr) {
         } else {
             ESP_LOGW(TAG, "Không nhận được dữ liệu từ PZEM.");
         }
-
 }
 
-
-
 void pzem_task(void *pvParameters) {
-
-    configure_uart_dynamic_Pzem(UART_PZEM_NUM, 9600, TX_PZEM, RX_PZEM);
 
     gpio_set_pull_mode(DS18B20_GPIO, GPIO_PULLUP_ONLY); // DS18B20 cần điện trở kéo lên 4.7k
     TickType_t sim_start_tick = xTaskGetTickCount();

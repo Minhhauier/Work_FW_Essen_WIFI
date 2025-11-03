@@ -8,7 +8,9 @@ idf_component_register(
             freertos
             config
             esp_timer
+            esp_wifi
 
             control_relay
+            setup_wifi
 )
 

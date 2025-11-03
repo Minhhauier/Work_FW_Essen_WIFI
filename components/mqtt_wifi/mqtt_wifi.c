@@ -10,6 +10,7 @@
 #include "system_manage.h"
 #include "config_parameter.h"
 #include "encrypt_decrypt.h"
+#include "setup_wifi.h"
 
 // define global variables
 static const char *TAG = "MQTT_WIFI";
@@ -22,6 +23,7 @@ static char buffer[1024] = "";
 static char cmd[256];
 static bool first_pub_version=false;
 RTC_DATA_ATTR static esp_mqtt_client_handle_t client;
+
 
 static esp_err_t mqtt_subscribe(esp_mqtt_client_handle_t client_id, const char *topic, int qos)
 {
@@ -66,9 +68,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         mqtt_subscribe(client, cmd, 1);
         snprintf(cmd, sizeof(cmd), "%s_%s",DEVICE_NAME,device_name);
         mqtt_subscribe(client, cmd, 1);
+        wifi_state=1;
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        try_connect_saved();
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -90,6 +94,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
+        buffer[event->data_len]='\0';
         strcpy(buffer,event->data);
         xQueueSend(mqtt_queue_handle,buffer,portMAX_DELAY);
         break;

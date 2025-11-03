@@ -1,7 +1,7 @@
 file(GLOB source "*.c")
 
 idf_component_register(
-    SRCS ${source}
+    SRCS "setup_wifi.c" "setup_wifi_interface.c"
     INCLUDE_DIRS include
     #REQUIRES
     PRIV_REQUIRES
@@ -9,5 +9,5 @@ idf_component_register(
         esp_event
         nvs_flash
         esp_http_server
-    
+        main
 )
