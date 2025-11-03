@@ -1,7 +1,5 @@
-file(GLOB SRCS "*.c")
-
 idf_component_register(
-        SRCS ${SRCS}
+        SRCS "control_relay.c"
         INCLUDE_DIRS include
         REQUIRES
             driver

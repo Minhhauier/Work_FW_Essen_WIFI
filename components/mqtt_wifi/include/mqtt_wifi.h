@@ -3,6 +3,8 @@
 
 #include <mqtt_client.h>
 
+extern int state_mqtt;
+
 void mqtt_init(char *mqtt_address, char *client_id,char *username, char *password);
 // static esp_err_t mqtt_subscribe(esp_mqtt_client_handle_t client, const char *topic, int qos);
 // static esp_err_t mqtt_publish(esp_mqtt_client_handle_t client, const char *topic, const char *data, int len, int qos, int retain);

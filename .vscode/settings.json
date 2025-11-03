@@ -4,6 +4,7 @@
         "system_manage.h": "c",
         "mqtt_wifi.h": "c",
         "config_parameter.h": "c",
-        "ota_wifi.h": "c"
+        "ota_wifi.h": "c",
+        "control_relay.h": "c"
     }
 }

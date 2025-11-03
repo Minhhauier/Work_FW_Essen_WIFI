@@ -28,6 +28,8 @@ static char cmd[256];
 static bool first_pub_version=false;
 RTC_DATA_ATTR static esp_mqtt_client_handle_t client;
 
+int state_mqtt = 0; //0: disconnect,1: connect, 3 setup
+
 static esp_err_t mqtt_subscribe(esp_mqtt_client_handle_t client_id, const char *topic, int qos)
 {
     int msg_id = esp_mqtt_client_subscribe_single(client_id, topic, qos);
@@ -71,12 +73,14 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         mqtt_subscribe(client, cmd, 1);
         snprintf(cmd, sizeof(cmd), "%s_%s",DEVICE_NAME,device_name);
         mqtt_subscribe(client, cmd, 1);
-        gpio_set_level(LED_DECTEC_MQTT,1);
+        // gpio_set_level(LED_DECTEC_MQTT,1);
+        state_mqtt = 1;
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
         try_connect_saved();
-        gpio_set_level(LED_DECTEC_MQTT,0);
+        state_mqtt = 0;
+        // gpio_set_level(LED_DECTEC_MQTT,0);
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);

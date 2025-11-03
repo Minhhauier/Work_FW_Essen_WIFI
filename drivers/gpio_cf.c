@@ -4,9 +4,10 @@
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "esp_attr.h"
-#include "control_relay.h"
-// /#include "setup_wifi.h"
 
+#include "control_relay.h"
+#include "setup_wifi.h"
+#include "esp_wifi.h"
 
 #define DELAY_US 15000  // 15ms
 
@@ -17,9 +18,9 @@ static void delay_timer_callback(void* arg) {
    // printf("dectect_zero\r\n");
     if(control_signal==1)
     {
-    printf("done\n");
-    control_signal=0;
-    relay_set(g_gate_state);
+        printf("done\n");
+        control_signal=0;
+        relay_set(g_gate_state);
     }
 }
 // phát hiện sườn âm
@@ -76,21 +77,21 @@ gpio_config(&io_conf);
 // gpio_install_isr_service(0);
 }
 
-// void stop_action_timer_callback(void *arg)
-// {
-//     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-//     ESP_LOGI("WIFI", "AP interface disabled - Device now in pure Station mode");
-// }
-// void start_stop_timer(void)
-// {
-//     const esp_timer_create_args_t stop_timer_args = {
-//         .callback = &stop_action_timer_callback,
-//         .name = "stop_action_timer"
-//     };
+void stop_action_timer_callback(void *arg)
+{
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_LOGI("WIFI", "AP interface disabled - Device now in pure Station mode");
+}
+void start_stop_timer(void)
+{
+    const esp_timer_create_args_t stop_timer_args = {
+        .callback = &stop_action_timer_callback,
+        .name = "stop_action_timer"
+    };
 
-//     esp_timer_handle_t stop_timer;
-//     ESP_ERROR_CHECK(esp_timer_create(&stop_timer_args, &stop_timer));
+    esp_timer_handle_t stop_timer;
+    ESP_ERROR_CHECK(esp_timer_create(&stop_timer_args, &stop_timer));
 
-//     // 3 phút = 180 giây = 180 * 1,000,000 micro giây
-//     ESP_ERROR_CHECK(esp_timer_start_once(stop_timer, 180000000ULL));
-// }
+    // 3 phút = 180 giây = 180 * 1,000,000 micro giây
+    ESP_ERROR_CHECK(esp_timer_start_once(stop_timer, 180000000ULL));
+}

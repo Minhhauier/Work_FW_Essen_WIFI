@@ -4,7 +4,7 @@
 #include <driver/gpio.h>
 
 #define ZERO_DETECT             GPIO_NUM_34
-#define LED_DECTEC_MQTT         GPIO_NUM_4
+#define LED_DECTEC_MQTT         GPIO_NUM_2
 #define GPIO_WIFI_CONFIG        GPIO_NUM_0
 
 #include <stdint.h>

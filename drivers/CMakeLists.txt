@@ -8,8 +8,10 @@ idf_component_register(
             freertos
             config
             esp_timer
-
+        # PRIV_REQUIRES
             control_relay
             setup_wifi
+            esp_wifi
+            
 )
 
