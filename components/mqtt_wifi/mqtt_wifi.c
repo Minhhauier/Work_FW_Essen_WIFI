@@ -88,6 +88,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         snprintf(cmd, sizeof(cmd), "%s_%s",DEVICE_NAME,device_name);
         mqtt_subscribe(client, cmd, 1);
         wifi_state=1;
+        s_connected = true; 
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");

@@ -117,27 +117,6 @@ static esp_err_t scan_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-// ---------- Event handlers ----------
-// static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
-// {
-//     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-//         ESP_LOGI(TAG, "WiFi disconnected");
-//         s_connected = false;
-//         xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
-
-//         esp_wifi_connect();
-//         ESP_LOGI(TAG, "Reconnecting to WiFi...");
-        
-//         static int retry_count = 0;
-//         if(retry_count < 5) {
-//             retry_count++;
-//         } else {
-//             ESP_LOGI(TAG, "Max retries reached - Re-enabling AP interface for configuration");
-//             ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
-//             retry_count = 0;
-//         }
-//     }
-// }
 void publish_infor_wifi(void){
     wifi_ap_record_t ap_info;
     esp_err_t ret = esp_wifi_sta_get_ap_info(&ap_info);
@@ -274,12 +253,13 @@ static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t eve
 {
     if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ESP_LOGI(TAG, "Got IP - Disabling AP interface");
-        s_connected = check_internet();
+        s_connected = true;
         s_retry_num = 0; 
         act_handle = false;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
         stop_my_timer();
         // Disable access point mode after successful station connection
+        vTaskDelay(3000/portTICK_PERIOD_MS);
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
         ESP_LOGI(TAG, "AP interface disabled - Device now in pure Station mode");
     }
@@ -373,8 +353,14 @@ static esp_err_t connect_handler(httpd_req_t *req)
 // ---------- /status handler ----------
 static esp_err_t status_handler(httpd_req_t *req)
 {
-    if (s_connected) httpd_resp_sendstr(req, "connected");
-    else httpd_resp_sendstr(req, "disconnected");
+    if (s_connected) {
+       // ESP_LOGE(TAG,"send wifi state connect to http");
+        httpd_resp_sendstr(req, "connected");
+    }
+    else {
+        //ESP_LOGE(TAG,"send wifi state disconnect to http");
+        httpd_resp_sendstr(req, "failed");
+    }
     return ESP_OK;
 }
 
