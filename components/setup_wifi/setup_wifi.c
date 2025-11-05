@@ -13,10 +13,15 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include <ctype.h>
+#include "esp_http_client.h"
 
 #include "setup_wifi.h"
 #include "system_manage.h"
+#include "mqtt_wifi.h"
+#include "gpio_cf.h"
+// extern variable
 int wifi_state = 0; //0 disconnect, 1 connect, 2 setup
+bool act_handle = false;
 /* ESP_ERROR_CHECK stản dấu kiểm tra lỗi của các hàm ESP-IDF.
 Trả về mã lỗi nếu hàm trả về khác ESP_OK (0) và in thông báo lỗi.
 */
@@ -32,8 +37,10 @@ static int s_retry_num = 0;
 // ---------- Handler trang chính ----------
 static esp_err_t root_get_handler(httpd_req_t *req) 
 {
+    act_handle = true;
+    printf("access to interface\r\n");
     httpd_resp_set_type(req, "text/html");
-    httpd_resp_send(req, html_page_1, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send(req, html_page_2, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
 
@@ -131,7 +138,47 @@ static esp_err_t scan_handler(httpd_req_t *req)
 //         }
 //     }
 // }
+void publish_infor_wifi(void){
+    wifi_ap_record_t ap_info;
+    esp_err_t ret = esp_wifi_sta_get_ap_info(&ap_info);
+    char ssid[33], MAC[33], ip[33];
+    int rssid;
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "Connected SSID: %s", (char*)ap_info.ssid);
+        ESP_LOGI(TAG, "RSSI: %d dBm", ap_info.rssi);
+        snprintf(ssid,sizeof(ssid),"%s",(char *)ap_info.ssid);
+        rssid = ap_info.rssi;
+    } else {
+        ESP_LOGW(TAG, "Not connected or can't get AP info (err=%d)", ret);
+        return;
+    }
+   
+    uint8_t mac[6];
+    if (esp_wifi_get_mac(WIFI_IF_STA, mac) == ESP_OK) {
+        ESP_LOGI(TAG, "STA MAC: %02x:%02x:%02x:%02x:%02x:%02x",
+                 mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+        snprintf(MAC,sizeof(MAC),"%02x:%02x:%02x:%02x:%02x:%02x",mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+    }
+    else return;
+     esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (netif) {
+        esp_netif_ip_info_t ip_info;
+        if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+            ESP_LOGI(TAG, "IP: " IPSTR, IP2STR(&ip_info.ip));
+            snprintf(ip, sizeof(ip), IPSTR, IP2STR(&ip_info.ip));
+
+        } else {
+            ESP_LOGW(TAG, "No IP info yet");
+            return;
+        }
+    } else {
+        ESP_LOGW(TAG, "Can't get netif handle (WIFI_STA_DEF)");
+        return;
+    }
+    mqtt_publish_wifi_infor(ssid,MAC,ip,rssid);   
+}
 void exit_accesspoint(){
+    act_handle = false;
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_LOGI(TAG, "AP interface disabled - Device now in pure Station mode");
 }
@@ -148,7 +195,7 @@ void reopen_network(){
         },
     };
     wifi_state=2;
-    strcpy((char *)wifi_config.ap.ssid, buffer);
+    strncpy((char *)wifi_config.ap.ssid, buffer, sizeof(wifi_config.ap.ssid) - 1);
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_LOGI(TAG, "AP mode re-enabled. SSID: Evsafe_%s",device_name);
@@ -172,21 +219,66 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
             ESP_LOGI(TAG, "Retry to connect to the AP, attempt %d/%d", s_retry_num, WIFI_MAXIMUM_RETRY);
         } else {
             ESP_LOGI(TAG, "Failed to connect after %d attempts. Enabling AP mode for reconfiguration", WIFI_MAXIMUM_RETRY);
-            // Bật lại chế độ AP
-            reopen_network();
+            //Bật lại chế độ AP
+            wifi_mode_t mode;
+            esp_wifi_get_mode(&mode);
+
+            if (mode == WIFI_MODE_AP) {
+                ESP_LOGI("WIFI", "Đang ở chế độ Access Point");
+                wifi_state=2;
+            } else if (mode == WIFI_MODE_STA) {
+                ESP_LOGI("WIFI", "Đang ở chế độ Station");
+                reopen_network();
+            } else if (mode == WIFI_MODE_APSTA) {
+                ESP_LOGI("WIFI", "Đang ở chế độ AP + STA ");
+                wifi_state=2;
+            } else {
+                ESP_LOGI("WIFI", "Wi-Fi đang tắt hoặc không xác định");
+            }
         }
     }
 }
+bool check_internet() {
+    esp_http_client_config_t config = {
+        .url = "http://clients3.google.com/generate_204",
+        .timeout_ms = 5000,
+        .skip_cert_common_name_check = true,
+        .keep_alive_enable = false,
+        .transport_type = HTTP_TRANSPORT_OVER_TCP
+    };
+    
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (client == NULL) {
+        ESP_LOGE(TAG, "Failed to initialize HTTP client");
+        return false;
+    }
 
+    esp_err_t err = esp_http_client_perform(client);
+    bool has_internet = false;
+    
+    if (err == ESP_OK) {
+        int status = esp_http_client_get_status_code(client);
+        ESP_LOGI(TAG, "HTTP Status = %d", status);
+        if (status == 204) {
+            has_internet = true;
+        }
+    } else {
+        ESP_LOGE(TAG, "HTTP GET request failed: %s", esp_err_to_name(err));
+    }
+    
+    esp_http_client_cleanup(client);
+    return has_internet;
+}
 
 static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) // internet protocol (IP)
 {
     if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ESP_LOGI(TAG, "Got IP - Disabling AP interface");
-        s_connected = true;
+        s_connected = check_internet();
         s_retry_num = 0; 
+        act_handle = false;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
-
+        stop_my_timer();
         // Disable access point mode after successful station connection
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
         ESP_LOGI(TAG, "AP interface disabled - Device now in pure Station mode");
@@ -291,6 +383,7 @@ static httpd_handle_t start_webserver(void)
 {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.stack_size = 8192; 
 
     if (httpd_start(&server, &config) == ESP_OK) {
         httpd_uri_t root = {
@@ -335,7 +428,7 @@ static void wifi_init_softap(void)
             .authmode =  WIFI_AUTH_OPEN
         },
     };
-    strcpy((char *)wifi_config.ap.ssid, buffer);
+    strncpy((char *)wifi_config.ap.ssid, buffer, sizeof(wifi_config.ap.ssid) - 1);
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());

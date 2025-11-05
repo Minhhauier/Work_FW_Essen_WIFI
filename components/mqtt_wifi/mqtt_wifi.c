@@ -11,6 +11,7 @@
 #include "config_parameter.h"
 #include "encrypt_decrypt.h"
 #include "setup_wifi.h"
+#include "esp_wifi.h"
 
 // define global variables
 static const char *TAG = "MQTT_WIFI";
@@ -22,6 +23,8 @@ static char json[1024] = "";
 static char buffer[1024] = "";
 static char cmd[256];
 static bool first_pub_version=false;
+
+static int count=0;
 RTC_DATA_ATTR static esp_mqtt_client_handle_t client;
 
 
@@ -52,7 +55,23 @@ void mqtt_publish_data(char *data,char *topic){
     esp_mqtt_client_publish(client, topic, data, strlen(data), 1, 0);
     //ESP_ERROR_CHECK(mqtt_publish(client,topic,data,strlen(data),1,0));
 }
+static void check_wifi(){
+    wifi_mode_t mode;
+    esp_wifi_get_mode(&mode);
 
+    if (mode == WIFI_MODE_AP) {
+        ESP_LOGI("WIFI", "Đang ở chế độ Access Point");
+        wifi_state=2;
+    } else if (mode == WIFI_MODE_STA) {
+        ESP_LOGI("WIFI", "Đang ở chế độ Station");
+        reopen_network();
+    } else if (mode == WIFI_MODE_APSTA) {
+        ESP_LOGI("WIFI", "Đang ở chế độ AP + STA ");
+        wifi_state=2;
+    } else {
+        ESP_LOGI("WIFI", "Wi-Fi đang tắt hoặc không xác định");
+    }
+}
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     esp_mqtt_event_handle_t event = event_data;
@@ -72,12 +91,16 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-        try_connect_saved();
+        count++;
+        if(act_handle==false && count >= 5){
+            try_connect_saved();
+            count=0;
+        }
+        else ESP_LOGI(TAG,"Setup wifi");
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        // Publish a message to a topic after subscribing
-        //mqtt_publish(client, cmd, "Hello MQTT", 10, 1, 0);
+        publish_infor_wifi();
         if(first_pub_version==false)
         {
          mqtt_publish_version(HW_VERSION,FW_VERSION,0);
@@ -94,12 +117,13 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
-        buffer[event->data_len]='\0';
-        strcpy(buffer,event->data);
-        xQueueSend(mqtt_queue_handle,buffer,portMAX_DELAY);
+        memcpy(buffer, event->data, event->data_len);
+        buffer[event->data_len] = '\0'; 
+        convert_to_json(buffer);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+        check_wifi();
         break;
     default:
         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
@@ -152,7 +176,9 @@ void mqtt_publish_data_power(float *value_power,int *value_vol){
     else {
         //mqtt_pub("UP4G/SmartEVsafe",json_encrypted);
         strcpy(buffer,json_encrypted);
-        xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        // xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        snprintf(cmd,sizeof(cmd),"%s/SmartEVsafe",PUB);
+        mqtt_publish(client,cmd,buffer,strlen(buffer),1,0);
     }
     free(json_encrypted);
 }
@@ -176,14 +202,14 @@ void mqtt_publish_version(char *verHW,char *verFW,int status){
         //     snprintf(cmd,256,"%s/SmartEVsafe",PUB);
         //     mqtt_pub(cmd,json_encrypted);
         // }
-        if(first_pub_version){
-        xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
-        }
-        else
-        {
+        // if(first_pub_version){
+        // xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        // }
+        // else
+        // {
         snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", PUB);
         mqtt_publish(client,cmd,buffer,strlen(buffer),1,0);
-        }
+       // }
     }
     free(json_encrypted);
 }
@@ -201,7 +227,8 @@ void mqtt_publish_gpsposition(float latitude_decimal,float longitude_decimal){
     }
     else{
         strcpy(buffer,json_encrypted);
-        xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", PUB);
+        mqtt_publish(client,cmd,buffer,strlen(buffer),1,0);
     }
     free(json_encrypted);
 }
@@ -218,9 +245,10 @@ void mqtt_publish_temp(double temp){
         printf("203: Can't encrypted, mqtt publish failed\r\n");
     }
     else {
-        //   mqtt_pub("UP4G/SmartEVsafe",json_encrypted);
+          // mqtt_pub("UP4G/SmartEVsafe",json_encrypted);
         strcpy(buffer,json_encrypted);
-        xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        snprintf(cmd,sizeof(cmd),"%s/SmartEVsafe",PUB);
+        mqtt_publish(client,cmd,buffer,strlen(buffer),1,0);
     }
     free(json_encrypted);
 }
@@ -248,7 +276,8 @@ void mqtt_publish_data_1gun_only(int gun_number,float power,float vol){
     else {
         //   mqtt_pub("UP4G/SmartEVsafe",json_encrypted);
         strcpy(buffer,json_encrypted);
-        xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", PUB);
+        mqtt_publish(client,cmd,buffer,strlen(buffer),1,0);
     }
     free(json_encrypted);   
 }
@@ -268,7 +297,8 @@ void mqtt_publish_wifi_infor(char *ssid,char *mac,char*ip,int rssi){
     else {
         //   mqtt_pub("UP4G/SmartEVsafe",json_encrypted);
         strcpy(buffer,json_encrypted);
-        xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", PUB);
+        mqtt_publish(client,cmd,buffer,strlen(buffer),1,0);
     }
     free(json_encrypted);
 }
@@ -307,11 +337,12 @@ void mqtt_publish_gun_status(int *value_status)
       else {
         //   mqtt_pub("UP4G/SmartEVsafe",json_encrypted);
         strcpy(buffer,json_encrypted);
-        xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", PUB);
+        mqtt_publish(client,cmd,buffer,strlen(buffer),1,0);
     }
     free(json_encrypted);
 }
-void mqtt_respond_change_gate(int gate, int state, int cmd) {
+void mqtt_respond_change_gate(int gate, int state, int cmd_d) {
     snprintf(json, BUF_SIZE_MQTT,
          "{\n"
          "  \"data\": {\n"
@@ -320,7 +351,7 @@ void mqtt_respond_change_gate(int gate, int state, int cmd) {
          "    \"Cmd\": %d\n"
          "  }\n"
          "}",
-             gate, state, cmd);
+             gate, state, cmd_d);
     char *json_encrypted = encrypt_data(json,device_name,208);
     if (json_encrypted==NULL)
     {
@@ -329,7 +360,9 @@ void mqtt_respond_change_gate(int gate, int state, int cmd) {
       else {
         //   mqtt_pub("UP4G/SmartEVsafe",json_encrypted);
         strcpy(buffer,json_encrypted);
-        xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        //xQueueSend(publish_queue_handle,buffer,portMAX_DELAY);
+        snprintf(cmd,sizeof(cmd),"%s/SmartEVsafe",PUB);
+        mqtt_publish(client,cmd,buffer,strlen(buffer),1,0);
     }
     free(json_encrypted);
     //mqtt_publish_encrypted(json, device_name, 208);

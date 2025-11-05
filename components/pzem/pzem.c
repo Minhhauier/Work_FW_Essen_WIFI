@@ -14,6 +14,7 @@
 #include "mqtt_wifi.h"
 #include "control_relay.h"
 #include "control_led.h"
+#include "system_manage.h"
 
 #define UART_PZEM_NUM          UART_NUM_2
 #define TX_PZEM                 27
@@ -252,16 +253,16 @@ void pzem_task(void *pvParameters) {
                 vTaskDelay(pdMS_TO_TICKS(100)); 
             }
         }
-        if(xTaskGetTickCount() - temp_start_tick >= pdMS_TO_TICKS(150000)){
+        if(xTaskGetTickCount() - temp_start_tick >= pdMS_TO_TICKS(500000)){
             TempData_t t = ds18b20_read_temp_struct();
             if (t.valid) {
                 ESP_LOGI("DS18B20", "Temp: %.2f C (time=%llu us)", t.value, t.timestamp);
-                temp_start_tick = xTaskGetTickCount();
                 mqtt_publish_temp(t.value);
                 
             } else {
                 ESP_LOGW("DS18B20", "Read error");
             }
+            temp_start_tick = xTaskGetTickCount();
         }
         }
         vTaskDelay(pdMS_TO_TICKS(1000)); // 2s đọc 1 lần

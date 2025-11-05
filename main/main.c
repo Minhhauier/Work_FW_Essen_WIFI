@@ -34,46 +34,18 @@ void app_main(void)
     get_device_name(device_name);
     ESP_LOGI(TAG,"==Device name: %s==",device_name);
     ESP_LOGI(TAG, "Starting setup_wifi_init()");
-    setup_wifi_init();
-    all_led_by_status(0);
     config_gpio_detect_zero();
-    config_gpio_wifi_menu_config();
+    all_led_by_status(0);
     config_gpio_led();
-    while (s_connected == false)
-    {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
-    ESP_LOGI(TAG, "WiFi connected, starting MQTT");
-    mqtt_start();
     configure_uart_dynamic_Pzem(UART_PZEM_NUM, 9600, TX_PZEM, RX_PZEM);
-    xTaskCreate(&task_system_manage, "system_manage_task", 1024*4, NULL, 5, NULL);
-    xTaskCreate(&pzem_task,"pzem task", 1024*4, NULL, 5, NULL);
+    xTaskCreate(&task_system_manage, "system_manage_task", 1024*4, NULL, 10, NULL);
+    xTaskCreate(&pzem_task,"pzem task", 1024*4, NULL, 10, NULL);
+    xTaskCreate(&detect_wifi_task,"detect wifi task",1024*4,NULL,10,NULL);
     do_firmware_upgrade(NULL);
     while (1)
     {
-        if(gpio_get_level(GPIO_WIFI_CONFIG)==0)
-        {
-            while (gpio_get_level(GPIO_WIFI_CONFIG)==0)
-            {
-                vTaskDelay(100/portTICK_PERIOD_MS);
-            }
-            wifi_state=2;
-            reopen_network();
-            start_stop_timer();
-        }
-        if(wifi_state==0){
-            gpio_set_level(LED_DECTEC_MQTT,0);
-        }
-        else if(wifi_state==1){
-            gpio_set_level(LED_DECTEC_MQTT,1);
-        }
-        else{
-            gpio_set_level(LED_DECTEC_MQTT,0);
-            vTaskDelay(500/portTICK_PERIOD_MS);
-            gpio_set_level(LED_DECTEC_MQTT,1);
-        }
         //ESP_LOGI(TAG, "Main task running...");
-        vTaskDelay(500/portTICK_PERIOD_MS);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
     }
     
 }
