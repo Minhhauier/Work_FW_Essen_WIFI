@@ -68,6 +68,7 @@ static esp_err_t action_handler(httpd_req_t *req)
 // }
 static esp_err_t scan_handler(httpd_req_t *req)
 {
+    act_handle = true;
     wifi_scan_config_t scan_config = {
         .ssid = 0,
         .bssid = 0, 

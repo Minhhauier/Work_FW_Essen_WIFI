@@ -302,6 +302,7 @@ void parse_json(const char *json_str) {
                         do_firmware_upgrade(lnk1);
                         //esp_restart();
                     }
+                   // do_firmware_upgrade("http://ota1.chtlab.us/dev/blink.bin");
                 }
             }
         }

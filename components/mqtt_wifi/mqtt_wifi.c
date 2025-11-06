@@ -139,7 +139,8 @@ void mqtt_init(char *mqtt_address, char *client_id,char *username, char *passwor
     .credentials.client_id = client_id,
     .credentials.username = username,
     .credentials.authentication.password = password,
-    .session.keepalive = 120,
+    .network.reconnect_timeout_ms =10000,
+    .session.keepalive = 60,
     };
     client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
