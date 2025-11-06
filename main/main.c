@@ -47,5 +47,4 @@ void app_main(void)
         //ESP_LOGI(TAG, "Main task running...");
         vTaskDelay(1000/portTICK_PERIOD_MS);
     }
-    
 }

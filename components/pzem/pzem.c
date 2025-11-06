@@ -230,7 +230,7 @@ void pzem_task(void *pvParameters) {
             PzemData_t data = pzem_read_and_feedback(addr);
             vTaskDelay(pdMS_TO_TICKS(500));  
             // delay ngắn giữa các PZEM để UART không bị dính dữ liệu
-            if(data.power>=POWER_MIN) power[addr-1] = data.power;
+            if(data.power>=POWER_MIN && data.power<=POWER_MAX) power[addr-1] = data.power;
             else power[addr-1]=0;
             if(power[addr-1]==0){
                 if(get_gate_state(addr)==GATE_CHARGE) count[addr-1]++;
