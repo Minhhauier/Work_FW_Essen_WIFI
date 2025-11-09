@@ -181,44 +181,6 @@ void reopen_network(){
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_LOGI(TAG, "AP mode re-enabled. SSID: Evsafe_%s",device_name);
 }
-// static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) // arg: Dữ liệu phụ truyền vào khi đk handle, 
-// //event_base: Nhóm sự kiện (WIFI_EVENT,MQTT_EVENT,...)
-// // event_id: id cụ thể của sự kiện(WIFI_EVENT_STA_START, WIFI_EVENT_STA_DISCONNECTED,...),
-// // event_data: dữ liệu liên quan đến sự kiện
-// {
-//     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-//         esp_wifi_connect();
-//     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-//         ESP_LOGI(TAG, "WiFi disconnected");
-//         s_connected = false;
-//         wifi_state=0;
-//         xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
-        
-//        // if (s_retry_num < WIFI_MAXIMUM_RETRY) {
-//         //    esp_wifi_connect();
-//        //     s_retry_num++;
-//        //     ESP_LOGI(TAG, "Retry to connect to the AP, attempt %d/%d", s_retry_num, WIFI_MAXIMUM_RETRY);
-//        // } else {
-//        //     ESP_LOGI(TAG, "Failed to connect after %d attempts. Enabling AP mode for reconfiguration", WIFI_MAXIMUM_RETRY);
-//             //Bật lại chế độ AP
-//             wifi_mode_t mode;
-//             esp_wifi_get_mode(&mode);
-
-//             if (mode == WIFI_MODE_AP) {
-//                 ESP_LOGI("WIFI", "Đang ở chế độ Access Point");
-//                 wifi_state=2;
-//             } else if (mode == WIFI_MODE_STA) {
-//                 ESP_LOGI("WIFI", "Đang ở chế độ Station");
-//                 reopen_network();
-//             } else if (mode == WIFI_MODE_APSTA) {
-//                 ESP_LOGI("WIFI", "Đang ở chế độ AP + STA ");
-//                 wifi_state=2;
-//             } else {
-//                 ESP_LOGI("WIFI", "Wi-Fi đang tắt hoặc không xác định");
-//             }
-//         // }
-//     }
-// }
  static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) 
  {
     if(event_base == WIFI_EVENT){
