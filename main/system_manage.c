@@ -29,22 +29,33 @@ void task_system_manage(void *pvParameter)
     // wifi_state=2;
     while (s_connected == false)
     {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        if(act_handle==false && mqtt_connected==false){
+            try_connect_saved();
+            printf("Try connect wifi saved\r\n");
+            //count=0;
+        }
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
     ESP_LOGI(TAG, "WiFi connected, starting MQTT");
     mqtt_start();
     while (1)
     {
-        if(xQueueReceive(mqtt_queue_handle, data_receive,portMAX_DELAY) == pdTRUE) {
-           // ESP_LOGI(TAG, "Data received from MQTT queue: %s", data_receive);
-            convert_to_json(data_receive);
+        if(act_handle==false && mqtt_connected==false){
+            try_connect_saved();
+            printf("Try connect wifi saved\r\n");
+            //count=0;
         }
-        if(xQueueReceive(publish_queue_handle, data_receive, portMAX_DELAY) == pdTRUE) {
-            // Process publish queue item
-            //ESP_LOGI(TAG, "Data received from publish queue: %s", data_receive);
-            mqtt_publish_data(data_receive, topic);
-            // Handle publish data here
-        }
-        vTaskDelay(100 / portTICK_PERIOD_MS);
+        //else printf("setup wifi\r\n");
+        // if(xQueueReceive(mqtt_queue_handle, data_receive,portMAX_DELAY) == pdTRUE) {
+        //    // ESP_LOGI(TAG, "Data received from MQTT queue: %s", data_receive);
+        //     convert_to_json(data_receive);
+        // }
+        // if(xQueueReceive(publish_queue_handle, data_receive, portMAX_DELAY) == pdTRUE) {
+        //     // Process publish queue item
+        //     //ESP_LOGI(TAG, "Data received from publish queue: %s", data_receive);
+        //     mqtt_publish_data(data_receive, topic);
+        //     // Handle publish data here
+        // }
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
 }

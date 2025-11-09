@@ -26,6 +26,8 @@ static bool first_pub_version=false;
 
 static int count=0;
 RTC_DATA_ATTR static esp_mqtt_client_handle_t client;
+//define extern variables
+bool mqtt_connected = false;
 
 
 static esp_err_t mqtt_subscribe(esp_mqtt_client_handle_t client_id, const char *topic, int qos)
@@ -88,16 +90,15 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         snprintf(cmd, sizeof(cmd), "%s_%s",DEVICE_NAME,device_name);
         mqtt_subscribe(client, cmd, 1);
         wifi_state=1;
+        mqtt_connected=true;
         s_connected = true; 
+        act_handle = false;
+        // count=0;
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
         count++;
-        if(act_handle==false && count >= 5){
-            try_connect_saved();
-            count=0;
-        }
-        else ESP_LOGI(TAG,"Setup wifi");
+        mqtt_connected=false;
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -139,7 +140,7 @@ void mqtt_init(char *mqtt_address, char *client_id,char *username, char *passwor
     .credentials.client_id = client_id,
     .credentials.username = username,
     .credentials.authentication.password = password,
-    .network.reconnect_timeout_ms =10000,
+    .network.reconnect_timeout_ms =5000,
     .session.keepalive = 60,
     };
     client = esp_mqtt_client_init(&mqtt_cfg);
