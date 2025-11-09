@@ -219,7 +219,8 @@ void reopen_network(){
 //         // }
 //     }
 // }
-static wifi_event_handler(void *arg, esp_event_handler_t event_base,int32_t event_id, void * event_data){
+ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) 
+ {
     if(event_base == WIFI_EVENT){
         switch (event_id)
         {
@@ -251,9 +252,11 @@ static wifi_event_handler(void *arg, esp_event_handler_t event_base,int32_t even
         case WIFI_EVENT_AP_STACONNECTED:
             ESP_LOGI(TAG,"User access to AP");
             act_handle=true;
+            break;
         case WIFI_EVENT_AP_STADISCONNECTED:
             ESP_LOGI(TAG,"Out from setup wifi mode");
             act_handle=false;
+            break;
         default:
             break;
         }
