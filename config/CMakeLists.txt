@@ -1,7 +1,7 @@
-file(GLOB source "*.c")
+# file(GLOB source "*.c")
 
 idf_component_register(
-    SRCS ${source}
+    # SRCS ${source}
     INCLUDE_DIRS "."
     REQUIRES
         

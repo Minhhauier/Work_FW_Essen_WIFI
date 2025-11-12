@@ -6,14 +6,14 @@ idf_component_register(SRCS "main.c" "system_manage.c"
                         esp_event
                         nvs_flash 
                         esp_http_server
-                    # PRIV_REQUIRES
+                    PRIV_REQUIRES
                         setup_wifi
                         mqtt_wifi
                         config
                         encrypt
                         drivers
                         control_led
-                        # control_relay
+                        control_relay
                         ota_wifi
                         pzem
 )

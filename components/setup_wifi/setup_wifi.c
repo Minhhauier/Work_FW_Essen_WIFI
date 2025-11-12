@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -12,707 +13,35 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 #include <ctype.h>
+#include "esp_http_client.h"
 
 #include "setup_wifi.h"
+#include "system_manage.h"
 #include "mqtt_wifi.h"
 #include "gpio_cf.h"
-
-// ---------- html_page ----------
-const char *html_page = 
-"<!doctype html>\n"
-"<html lang=\"vi\">\n"
-"	<head>\n"
-"		<meta charset=\"UTF-8\" />\n"
-"		<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n"
-"		<title>EVsafe - Onboarding</title>\n"
-"		<style>\n"
-"			* {\n"
-"				margin: 0;\n"
-"				padding: 0;\n"
-"				box-sizing: border-box;\n"
-"			}\n"
-"\n"
-"			body {\n"
-"				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;\n"
-"				height: 100vh;\n"
-"				overflow: hidden;\n"
-"			}\n"
-"\n"
-"			.container {\n"
-"				position: relative;\n"
-"				width: 428px;\n"
-"				height: 926px;\n"
-"				margin: 0 auto;\n"
-"				background: linear-gradient(to bottom, #ffffff, #d4e2ff);\n"
-"			}\n"
-"\n"
-"			/* Status Bar */\n"
-"			.status-bar {\n"
-"				position: absolute;\n"
-"				top: 0;\n"
-"				left: 50%;\n"
-"				transform: translateX(-50%);\n"
-"				width: 428px;\n"
-"				display: flex;\n"
-"				justify-content: space-between;\n"
-"				align-items: center;\n"
-"				padding: 12px 28px;\n"
-"				box-sizing: border-box;\n"
-"			}\n"
-"\n"
-"			.status-time {\n"
-"				font-family: 'DM Sans', sans-serif;\n"
-"				font-weight: 600;\n"
-"				font-size: 15px;\n"
-"				color: #363636;\n"
-"				letter-spacing: -0.165px;\n"
-"				line-height: 18px;\n"
-"			}\n"
-"\n"
-"			.status-icons {\n"
-"				display: flex;\n"
-"				gap: 8px;\n"
-"				align-items: center;\n"
-"			}\n"
-"\n"
-"			.status-icon {\n"
-"				display: block;\n"
-"			}\n"
-"\n"
-"			/* Logo */\n"
-"			.logo-container {\n"
-"				position: absolute;\n"
-"				top: 114px;\n"
-"				left: calc(25% + 13px);\n"
-"				width: 187px;\n"
-"				height: 64px;\n"
-"			}\n"
-"\n"
-"			.logo-group1 {\n"
-"				position: absolute;\n"
-"				bottom: 27.22%;\n"
-"				left: 32.19%;\n"
-"				right: 0;\n"
-"				top: 27.22%;\n"
-"			}\n"
-"\n"
-"			.logo-group2 {\n"
-"				position: absolute;\n"
-"				bottom: 0;\n"
-"				left: 0;\n"
-"				right: 70.86%;\n"
-"				top: 0;\n"
-"			}\n"
-"\n"
-"			.logo-subgroup1 {\n"
-"				position: absolute;\n"
-"				bottom: 0;\n"
-"				left: 0;\n"
-"				right: 70.86%;\n"
-"				top: 7.28%;\n"
-"			}\n"
-"\n"
-"			.logo-subgroup2 {\n"
-"				position: absolute;\n"
-"				bottom: 1.57%;\n"
-"				left: 4.99%;\n"
-"				right: 75.8%;\n"
-"				top: 0;\n"
-"			}\n"
-"\n"
-"			/* WiFi List Container */\n"
-"			.wifi-list-container {\n"
-"				position: absolute;\n"
-"				top: 198px;\n"
-"				left: 50%;\n"
-"				transform: translateX(-50%);\n"
-"				width: 396px;\n"
-"			}\n"
-"\n"
-"			.wifi-list {\n"
-"				background: rgba(255, 255, 255, 0.95);\n"
-"				backdrop-filter: blur(2.5px);\n"
-"				border-radius: 20px;\n"
-"				padding: 16px;\n"
-"				width: 100%;\n"
-"			}\n"
-"\n"
-"			.wifi-item {\n"
-"				display: flex;\n"
-"				justify-content: space-between;\n"
-"				align-items: center;\n"
-"				padding: 0 0 12px 0;\n"
-"				border-bottom: 1px solid rgba(255, 255, 255, 0.5);\n"
-"				margin-bottom: 12px;\n"
-"			}\n"
-"\n"
-"			.wifi-item:last-child {\n"
-"				border-bottom: none;\n"
-"				margin-bottom: 0;\n"
-"				padding-bottom: 12px;\n"
-"			}\n"
-"\n"
-"			.wifi-name {\n"
-"				font-family: 'Be Vietnam Pro', sans-serif;\n"
-"				font-weight: 500;\n"
-"				font-size: 16px;\n"
-"				color: #484848;\n"
-"				line-height: 22px;\n"
-"			}\n"
-"\n"
-"			.wifi-icons {\n"
-"				display: flex;\n"
-"				gap: 4px;\n"
-"				align-items: center;\n"
-"			}\n"
-"\n"
-"			.wifi-icon {\n"
-"				width: 20px;\n"
-"				height: 20px;\n"
-"			}\n"
-"\n"
-"			/* Signal strength bars */\n"
-"			.signal-bars {\n"
-"				display: flex;\n"
-"				align-items: flex-end;\n"
-"				gap: 2px;\n"
-"				width: 20px;\n"
-"				height: 16px;\n"
-"			}\n"
-"\n"
-"			.signal-bar {\n"
-"				background-color: #ccc;\n"
-"				width: 3px;\n"
-"				border-radius: 1px;\n"
-"			}\n"
-"\n"
-"			.signal-bar.active {\n"
-"				background-color: #4a90e2;\n"
-"			}\n"
-"\n"
-"			.signal-bar-1 {\n"
-"				height: 4px;\n"
-"			}\n"
-"			.signal-bar-2 {\n"
-"				height: 7px;\n"
-"			}\n"
-"			.signal-bar-3 {\n"
-"				height: 10px;\n"
-"			}\n"
-"			.signal-bar-4 {\n"
-"				height: 13px;\n"
-"			}\n"
-"			.signal-bar-5 {\n"
-"				height: 16px;\n"
-"			}\n"
-"\n"
-"			/* Home Indicator */\n"
-"			.home-indicator {\n"
-"				position: absolute;\n"
-"				bottom: 0;\n"
-"				left: 0;\n"
-"				right: 0;\n"
-"				height: 25px;\n"
-"			}\n"
-"\n"
-"			.home-indicator-bar {\n"
-"				position: absolute;\n"
-"				bottom: 10px;\n"
-"				left: 50%;\n"
-"				transform: translateX(-50%);\n"
-"				width: 148px;\n"
-"				height: 5px;\n"
-"				background: rgba(255, 255, 255, 0.15);\n"
-"				border-radius: 109.744px;\n"
-"			}\n"
-"\n"
-"			/* Icon placeholders (since we don't have the actual SVG files) */\n"
-"			.icon-placeholder {\n"
-"				background: #ccc;\n"
-"				border-radius: 2px;\n"
-"				display: inline-block;\n"
-"			}\n"
-"\n"
-"			.status-icon-placeholder {\n"
-"				width: 17px;\n"
-"				height: 11px;\n"
-"			}\n"
-"\n"
-"			.wifi-icon-placeholder {\n"
-"				width: 20px;\n"
-"				height: 20px;\n"
-"				border-radius: 3px;\n"
-"			}\n"
-"\n"
-"			.lock-icon::before {\n"
-"				content: '🔒';\n"
-"				font-size: 16px;\n"
-"			}\n"
-"\n"
-"			.wifi-icon::before {\n"
-"				content: '📶';\n"
-"				font-size: 16px;\n"
-"			}\n"
-"\n"
-"			/* Enhanced WiFi Item Styles */\n"
-"			.wifi-item {\n"
-"				cursor: pointer;\n"
-"				transition: background-color 0.2s;\n"
-"				border-radius: 8px;\n"
-"				margin: 0 -8px 12px -8px;\n"
-"				padding: 8px 8px 12px 8px;\n"
-"			}\n"
-"\n"
-"			.wifi-item:hover {\n"
-"				background-color: rgba(0, 0, 0, 0.05);\n"
-"			}\n"
-"\n"
-"			/* Popup Styles */\n"
-"			.popup-overlay {\n"
-"				position: fixed;\n"
-"				top: 0;\n"
-"				left: 0;\n"
-"				width: 100%;\n"
-"				height: 100%;\n"
-"				background-color: rgba(0, 0, 0, 0.5);\n"
-"				display: none;\n"
-"				justify-content: center;\n"
-"				align-items: center;\n"
-"				z-index: 1000;\n"
-"			}\n"
-"\n"
-"			.popup-content {\n"
-"				background: white;\n"
-"				border-radius: 16px;\n"
-"				padding: 24px;\n"
-"				width: 320px;\n"
-"				max-width: 90%;\n"
-"				box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);\n"
-"			}\n"
-"\n"
-"			.popup-header {\n"
-"				margin-bottom: 20px;\n"
-"			}\n"
-"\n"
-"			.popup-title {\n"
-"				font-family: 'Be Vietnam Pro', sans-serif;\n"
-"				font-weight: 600;\n"
-"				font-size: 18px;\n"
-"				color: #484848;\n"
-"				margin-bottom: 8px;\n"
-"			}\n"
-"\n"
-"			.popup-subtitle {\n"
-"				font-family: 'Be Vietnam Pro', sans-serif;\n"
-"				font-size: 14px;\n"
-"				color: #888;\n"
-"			}\n"
-"\n"
-"			.popup-form {\n"
-"				margin-bottom: 20px;\n"
-"			}\n"
-"\n"
-"			.popup-input {\n"
-"				width: 100%;\n"
-"				padding: 12px 16px;\n"
-"				border: 2px solid #e6e6e6;\n"
-"				border-radius: 8px;\n"
-"				font-size: 16px;\n"
-"				font-family: 'Be Vietnam Pro', sans-serif;\n"
-"				box-sizing: border-box;\n"
-"			}\n"
-"\n"
-"			.popup-input:focus {\n"
-"				outline: none;\n"
-"				border-color: #4a90e2;\n"
-"			}\n"
-"\n"
-"			.popup-buttons {\n"
-"				display: flex;\n"
-"				gap: 12px;\n"
-"			}\n"
-"\n"
-"			.popup-button {\n"
-"				flex: 1;\n"
-"				padding: 12px;\n"
-"				border: none;\n"
-"				border-radius: 8px;\n"
-"				font-size: 16px;\n"
-"				font-family: 'Be Vietnam Pro', sans-serif;\n"
-"				font-weight: 500;\n"
-"				cursor: pointer;\n"
-"				transition: background-color 0.2s;\n"
-"			}\n"
-"\n"
-"			.popup-button.cancel {\n"
-"				background: #f5f5f5;\n"
-"				color: #666;\n"
-"			}\n"
-"\n"
-"			.popup-button.cancel:hover {\n"
-"				background: #e6e6e6;\n"
-"			}\n"
-"\n"
-"			.popup-button.connect {\n"
-"				background: #4a90e2;\n"
-"				color: white;\n"
-"			}\n"
-"\n"
-"			.popup-button.connect:hover {\n"
-"				background: #357abd;\n"
-"			}\n"
-"		</style>\n"
-"	</head>\n"
-"	<body>\n"
-"		<div class=\"container\">\n"
-"			<!-- Status Bar -->\n"
-"			<div class=\"status-bar\">\n"
-"				<p class=\"status-time\">9:41</p>\n"
-"				<div class=\"status-icons\">\n"
-"					<span class=\"status-icon icon-placeholder status-icon-placeholder\"></span>\n"
-"					<span class=\"status-icon icon-placeholder status-icon-placeholder\"></span>\n"
-"					<span class=\"status-icon icon-placeholder status-icon-placeholder\"></span>\n"
-"				</div>\n"
-"			</div>\n"
-"\n"
-"			<!-- Logo -->\n"
-"			<div class=\"logo-container\">\n"
-"				<div class=\"logo-group1\">\n"
-"					<!-- Logo images would go here -->\n"
-"					<div\n"
-"						style=\"\n"
-"							background: #4a90e2;\n"
-"							width: 100%;\n"
-"							height: 100%;\n"
-"							border-radius: 4px;\n"
-"							display: flex;\n"
-"							align-items: center;\n"
-"							justify-content: center;\n"
-"							color: white;\n"
-"							font-weight: bold;\n"
-"						\"\n"
-"					>\n"
-"						EVsafe\n"
-"					</div>\n"
-"				</div>\n"
-"			</div>\n"
-"\n"
-"			<!-- WiFi List -->\n"
-"			<div class=\"wifi-list-container\">\n"
-"				<div style=\"margin-bottom: 12px; text-align: center\">\n"
-"					<button\n"
-"						onclick=\"scanWifiNetworks()\"\n"
-"						style=\"\n"
-"							background: #4a90e2;\n"
-"							color: white;\n"
-"							border: none;\n"
-"							border-radius: 8px;\n"
-"							padding: 8px 16px;\n"
-"							font-size: 14px;\n"
-"							cursor: pointer;\n"
-"							font-family: 'Be Vietnam Pro', sans-serif;\n"
-"							margin-right: 8px;\n"
-"						\"\n"
-"					>\n"
-"						🔄 Quét lại WiFi\n"
-"					</button>\n"
-"					<button\n"
-"						onclick=\"showJsonResponse()\"\n"
-"						style=\"\n"
-"							background: #28a745;\n"
-"							color: white;\n"
-"							border: none;\n"
-"							border-radius: 8px;\n"
-"							padding: 8px 16px;\n"
-"							font-size: 14px;\n"
-"							cursor: pointer;\n"
-"							font-family: 'Be Vietnam Pro', sans-serif;\n"
-"						\"\n"
-"					>\n"
-"						📋 JSON Response\n"
-"					</button>\n"
-"				</div>\n"
-"				<div class=\"wifi-list\" id=\"wifiList\">\n"
-"					<!-- WiFi items will be generated by JavaScript -->\n"
-"				</div>\n"
-"			</div>\n"
-"\n"
-"			<!-- Home Indicator -->\n"
-"			<div class=\"home-indicator\">\n"
-"				<div class=\"home-indicator-bar\"></div>\n"
-"			</div>\n"
-"		</div>\n"
-"\n"
-"		<!-- WiFi Password Popup -->\n"
-"		<div id=\"wifiPopup\" class=\"popup-overlay\">\n"
-"			<div class=\"popup-content\">\n"
-"				<div class=\"popup-header\">\n"
-"					<div class=\"popup-title\" id=\"popupTitle\">Kết nối WiFi</div>\n"
-"					<div class=\"popup-subtitle\" id=\"popupSubtitle\">Nhập mật khẩu để kết nối</div>\n"
-"				</div>\n"
-"				<div class=\"popup-form\">\n"
-"					<input type=\"password\" class=\"popup-input\" id=\"wifiPassword\" placeholder=\"Nhập mật khẩu WiFi\" autocomplete=\"off\" />\n"
-"				</div>\n"
-"				<div class=\"popup-buttons\">\n"
-"					<button class=\"popup-button cancel\" onclick=\"closeWifiPopup()\">Hủy</button>\n"
-"					<button class=\"popup-button connect\" onclick=\"connectWifi()\">Kết nối</button>\n"
-"				</div>\n"
-"			</div>\n"
-"		</div>\n"
-"\n"
-"		<!-- JSON Response Popup -->\n"
-"		<div id=\"jsonPopup\" class=\"popup-overlay\">\n"
-"			<div class=\"popup-content\" style=\"width: 90%; max-width: 600px; max-height: 80%; overflow-y: auto\">\n"
-"				<div class=\"popup-header\">\n"
-"					<div class=\"popup-title\">JSON Response từ /scan</div>\n"
-"					<div class=\"popup-subtitle\">Dữ liệu thô từ ESP32</div>\n"
-"				</div>\n"
-"				<div style=\"margin-bottom: 20px\">\n"
-"					<pre\n"
-"						id=\"jsonContent\"\n"
-"						style=\"\n"
-"							background: #f8f9fa;\n"
-"							border: 1px solid #e9ecef;\n"
-"							border-radius: 8px;\n"
-"							padding: 16px;\n"
-"							font-size: 12px;\n"
-"							font-family: 'Courier New', monospace;\n"
-"							white-space: pre-wrap;\n"
-"							word-wrap: break-word;\n"
-"							max-height: 400px;\n"
-"							overflow-y: auto;\n"
-"						\"\n"
-"					>\n"
-"Chưa có dữ liệu JSON</pre\n"
-"					>\n"
-"				</div>\n"
-"				<div class=\"popup-buttons\">\n"
-"					<button class=\"popup-button cancel\" onclick=\"closeJsonPopup()\" style=\"width: 100%\">Đóng</button>\n"
-"				</div>\n"
-"			</div>\n"
-"		</div>\n"
-"		<script>\n"
-"			// WiFi networks data\n"
-"			let wifiNetworks = []\n"
-"\n"
-"			let selectedWifi = null\n"
-"			let lastJsonResponse = null // Store the last JSON response\n"
-"\n"
-"			// Show JSON Response Popup\n"
-"			function showJsonResponse() {\n"
-"				if (lastJsonResponse) {\n"
-"					document.getElementById('jsonContent').textContent = JSON.stringify(lastJsonResponse, null, 2)\n"
-"				} else {\n"
-"					document.getElementById('jsonContent').textContent = 'Chưa có dữ liệu JSON. Hãy quét WiFi trước.'\n"
-"				}\n"
-"				document.getElementById('jsonPopup').style.display = 'flex'\n"
-"			}\n"
-"\n"
-"			// Close JSON Response Popup\n"
-"			function closeJsonPopup() {\n"
-"				document.getElementById('jsonPopup').style.display = 'none'\n"
-"			}\n"
-"\n"
-"			// Scan WiFi networks from ESP32\n"
-"			async function scanWifiNetworks() {\n"
-"				const wifiList = document.getElementById('wifiList')\n"
-"				wifiList.innerHTML = '<div style=\"text-align: center; padding: 20px; color: #888;\">Đang quét WiFi...</div>'\n"
-"\n"
-"				try {\n"
-"					const response = await fetch('/scan')\n"
-"					const networks = await response.json()\n"
-"\n"
-"					// Store raw JSON response for debugging\n"
-"					lastJsonResponse = {\n"
-"						timestamp: new Date().toISOString(),\n"
-"						url: '/scan',\n"
-"						status: response.status,\n"
-"						data: networks,\n"
-"					}\n"
-"\n"
-"					if (networks.length === 0) {\n"
-"						wifiList.innerHTML = '<div style=\"text-align: center; padding: 20px; color: #888;\">Không tìm thấy mạng WiFi nào</div>'\n"
-"						return\n"
-"					}\n"
-"\n"
-"					// Update global networks data\n"
-"					wifiNetworks = networks\n"
-"					generateWifiList()\n"
-"				} catch (error) {\n"
-"					console.error('Scan failed:', error)\n"
-"					wifiList.innerHTML = '<div style=\"text-align: center; padding: 20px; color: #ff6b6b;\">Quét WiFi thất bại. Hãy thử quét lại.</div>'\n"
-"				}\n"
-"			}\n"
-"\n"
-"			// Generate signal strength bars\n"
-"			function getSignalBars(strength) {\n"
-"				let barsHtml = '<div class=\"signal-bars\">'\n"
-"				for (let i = 1; i <= 5; i++) {\n"
-"					const activeClass = i <= strength ? 'active' : ''\n"
-"					barsHtml += `<div class=\"signal-bar signal-bar-${i} ${activeClass}\"></div>`\n"
-"				}\n"
-"				barsHtml += '</div>'\n"
-"				return barsHtml\n"
-"			}\n"
-"\n"
-"			// Generate WiFi list from JSON data\n"
-"			function generateWifiList() {\n"
-"				const wifiList = document.getElementById('wifiList')\n"
-"				wifiList.innerHTML = ''\n"
-"\n"
-"				wifiNetworks.forEach((network, index) => {\n"
-"					const wifiItem = document.createElement('div')\n"
-"					wifiItem.className = 'wifi-item'\n"
-"					wifiItem.onclick = () => openWifiPopup(network)\n"
-"\n"
-"					const lockIcon = network.hasPassword ? '<span style=\"margin-right: 8px; font-size: 14px;\">🔒</span>' : ''\n"
-"					const signalBars = getSignalBars(network.signalStrength)\n"
-"\n"
-"					wifiItem.innerHTML = `\n"
-"						<p class=\"wifi-name\">${network.ssid || network.name}</p>\n"
-"						<div class=\"wifi-icons\">\n"
-"							${lockIcon}\n"
-"							${signalBars}\n"
-"						</div>\n"
-"					`\n"
-"\n"
-"					wifiList.appendChild(wifiItem)\n"
-"				})\n"
-"			} // Open WiFi popup\n"
-"			function openWifiPopup(network) {\n"
-"				selectedWifi = network\n"
-"				const networkName = network.ssid || network.name\n"
-"				document.getElementById('popupTitle').textContent = networkName\n"
-"\n"
-"				if (network.hasPassword) {\n"
-"					document.getElementById('popupSubtitle').textContent = 'Nhập mật khẩu để kết nối'\n"
-"					document.getElementById('wifiPassword').style.display = 'block'\n"
-"					document.getElementById('wifiPassword').focus()\n"
-"				} else {\n"
-"					document.getElementById('popupSubtitle').textContent = 'Mạng WiFi không có mật khẩu'\n"
-"					document.getElementById('wifiPassword').style.display = 'none'\n"
-"				}\n"
-"\n"
-"				document.getElementById('wifiPopup').style.display = 'flex'\n"
-"			}\n"
-"\n"
-"			// Close WiFi popup\n"
-"			function closeWifiPopup() {\n"
-"				document.getElementById('wifiPopup').style.display = 'none'\n"
-"				document.getElementById('wifiPassword').value = ''\n"
-"				selectedWifi = null\n"
-"			}\n"
-"\n"
-"			// Connect to WiFi\n"
-"			async function connectWifi() {\n"
-"				if (selectedWifi) {\n"
-"					const password = document.getElementById('wifiPassword').value\n"
-"					const networkName = selectedWifi.ssid || selectedWifi.name\n"
-"\n"
-"					if (selectedWifi.hasPassword && !password) {\n"
-"						alert('Vui lòng nhập mật khẩu WiFi')\n"
-"						return\n"
-"					}\n"
-"\n"
-"					// Show connecting status\n"
-"					document.getElementById('popupSubtitle').textContent = 'Đang kết nối...'\n"
-"					document.querySelector('.popup-button.connect').textContent = 'Đang kết nối...'\n"
-"					document.querySelector('.popup-button.connect').disabled = true\n"
-"\n"
-"					try {\n"
-"						// Send connect request to ESP32\n"
-"						const body = 'ssid=' + encodeURIComponent(networkName) + '&pass=' + encodeURIComponent(password)\n"
-"						const response = await fetch('/connect', {\n"
-"							method: 'POST',\n"
-"							headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },\n"
-"							body: body,\n"
-"						})\n"
-"\n"
-"						const result = await response.text()\n"
-"						document.getElementById('popupSubtitle').textContent = result\n"
-"\n"
-"						// Poll connection status\n"
-"						for (let i = 0; i < 10; i++) {\n"
-"							await new Promise((resolve) => setTimeout(resolve, 1000))\n"
-"\n"
-"							try {\n"
-"								const statusResponse = await fetch('/status')\n"
-"								const status = await statusResponse.text()\n"
-"\n"
-"								if (status.indexOf('connected') >= 0) {\n"
-"									document.getElementById('popupSubtitle').textContent = 'Kết nối thành công!'\n"
-"									setTimeout(() => {\n"
-"										closeWifiPopup()\n"
-"										alert('Kết nối WiFi thành công!')\n"
-"									}, 1500)\n"
-"									return\n"
-"								}\n"
-"\n"
-"								document.getElementById('popupSubtitle').textContent = `Đang thử kết nối... (${i + 1}/10)`\n"
-"							} catch (statusError) {\n"
-"								console.error('Status check failed:', statusError)\n"
-"							}\n"
-"						}\n"
-"\n"
-"						// If we get here, connection failed\n"
-"						document.getElementById('popupSubtitle').textContent = 'Kết nối thất bại. Vui lòng thử lại.'\n"
-"					} catch (error) {\n"
-"						console.error('Connect failed:', error)\n"
-"						document.getElementById('popupSubtitle').textContent = 'Lỗi kết nối. Vui lòng thử lại.'\n"
-"					}\n"
-"\n"
-"					// Reset button state\n"
-"					document.querySelector('.popup-button.connect').textContent = 'Kết nối'\n"
-"					document.querySelector('.popup-button.connect').disabled = false\n"
-"				}\n"
-"			}\n"
-"\n"
-"			// Close popup when clicking outside\n"
-"			document.getElementById('wifiPopup').addEventListener('click', function (e) {\n"
-"				if (e.target === this) {\n"
-"					closeWifiPopup()\n"
-"				}\n"
-"			})\n"
-"\n"
-"			// Close JSON popup when clicking outside\n"
-"			document.getElementById('jsonPopup').addEventListener('click', function (e) {\n"
-"				if (e.target === this) {\n"
-"					closeJsonPopup()\n"
-"				}\n"
-"			})\n"
-"\n"
-"			// Handle Enter key in password input\n"
-"			document.getElementById('wifiPassword').addEventListener('keypress', function (e) {\n"
-"				if (e.key === 'Enter') {\n"
-"					connectWifi()\n"
-"				}\n"
-"			})\n"
-"\n"
-"			// Initialize the app\n"
-"			document.addEventListener('DOMContentLoaded', function () {\n"
-"				// Try to scan WiFi networks first, fallback to sample data if fails\n"
-"				scanWifiNetworks()\n"
-"			})\n"
-"		</script>\n"
-"	</body>\n"
-"</html>";
-
+// extern variable
+int wifi_state = 0; //0 disconnect, 1 connect, 2 setup
+bool act_handle = false;
+/* ESP_ERROR_CHECK stản dấu kiểm tra lỗi của các hàm ESP-IDF.
+Trả về mã lỗi nếu hàm trả về khác ESP_OK (0) và in thông báo lỗi.
+*/
+// ---------- Globals and status ----------
 static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_CONNECTED_BIT BIT0
 bool s_connected = false;
-
+static char buffer[128];
 static const char *TAG = "ESP_WEB";
-#define WIFI_MAXIMUM_RETRY 5
+#define WIFI_MAXIMUM_RETRY 2
 static int s_retry_num = 0;
 
-// JavaScript từ file evsafe-onboarding.html được nối thành string để embed vào ESP32
 // ---------- Handler trang chính ----------
 static esp_err_t root_get_handler(httpd_req_t *req) 
 {
+    act_handle = true;
+    printf("access to interface\r\n");
     httpd_resp_set_type(req, "text/html");
-    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-    httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    httpd_resp_send(req, html_page, HTTPD_RESP_USE_STRLEN);
+    httpd_resp_send(req, html_page_2, HTTPD_RESP_USE_STRLEN);
+    vTaskDelay(500/portTICK_PERIOD_MS);
     return ESP_OK;
 }
 
@@ -737,37 +66,10 @@ static esp_err_t action_handler(httpd_req_t *req)
 }
 
 // ---------- WiFi scan handler (returns JSON array of SSIDs) ----------
-// static esp_err_t scan_handler(httpd_req_t *req)
-// {
-//     wifi_scan_config_t scan_config = {
-//         .ssid = 0, // 0: quét tất cả SSID, không chỉ định SSID cụ thể
-//         .bssid = 0, // 0: Bỏ qua không lọc theo BSSID 
-//         .channel = 0, // 0: quét tất cả các kênh
-//         .show_hidden = false // false: không hiển thị mạng ẩn
-//     };
-//     ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true)); // blocking
-//     uint16_t ap_num = 20;  // tối đa 20 AP (access point - điểm truy cập)
-//     wifi_ap_record_t ap_info[20]; 
-//     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_num, ap_info));
-
-//     // build simple JSON
-//     httpd_resp_set_type(req, "application/json");
-//     httpd_resp_sendstr_chunk(req, "[");
-//     for (int i = 0; i < ap_num; i++) {
-//         char esc_ssid[33];
-//         strncpy(esc_ssid, (char *)ap_info[i].ssid, sizeof(esc_ssid)-1);
-//         esc_ssid[32]=0;
-//         char buf[128];
-//         snprintf(buf, sizeof(buf), "{\"ssid\":\"%s\"}", esc_ssid);
-//         httpd_resp_sendstr_chunk(req, buf);
-//         if (i < ap_num - 1) httpd_resp_sendstr_chunk(req, ",");
-//     }
-//     httpd_resp_sendstr_chunk(req, "]");
-//     httpd_resp_sendstr_chunk(req, NULL);
-//     return ESP_OK;
 // }
 static esp_err_t scan_handler(httpd_req_t *req)
 {
+    act_handle = true;
     wifi_scan_config_t scan_config = {
         .ssid = 0,
         .bssid = 0, 
@@ -817,70 +119,154 @@ static esp_err_t scan_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) // arg: Dữ liệu phụ truyền vào khi đk handle, 
-//event_base: Nhóm sự kiện (WIFI_EVENT,MQTT_EVENT,...)
-// event_id: id cụ thể của sự kiện(WIFI_EVENT_STA_START, WIFI_EVENT_STA_DISCONNECTED,...),
-// event_data: dữ liệu liên quan đến sự kiện
-{
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        esp_wifi_connect();
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        ESP_LOGI(TAG, "WiFi disconnected");
-        s_connected = false;
-        xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
-        
-        if (s_retry_num < WIFI_MAXIMUM_RETRY) {
-            esp_wifi_connect();
-            s_retry_num++;
-            ESP_LOGI(TAG, "Retry to connect to the AP, attempt %d/%d", s_retry_num, WIFI_MAXIMUM_RETRY);
-        } else {
-            ESP_LOGI(TAG, "Failed to connect after %d attempts. Enabling AP mode for reconfiguration", WIFI_MAXIMUM_RETRY);
-            // Bật lại chế độ AP
-            wifi_config_t wifi_config = {
-                .ap = {
-                    .ssid = "CHTLAB-EVsafe",
-                    .ssid_len = 0,
-                    .channel = 1,
-                    .password = "",
-                    .max_connection = 4,
-                    .authmode = WIFI_AUTH_OPEN
-                },
-            };
-            state_mqtt=3;
-            ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
-            ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
-            ESP_LOGI(TAG, "AP mode re-enabled. SSID: CHTLAB-EVsafe");
-        }
+void publish_infor_wifi(void){
+    wifi_ap_record_t ap_info;
+    esp_err_t ret = esp_wifi_sta_get_ap_info(&ap_info);
+    char ssid[33], MAC[33], ip[33];
+    int rssid;
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "Connected SSID: %s", (char*)ap_info.ssid);
+        ESP_LOGI(TAG, "RSSI: %d dBm", ap_info.rssi);
+        snprintf(ssid,sizeof(ssid),"%s",(char *)ap_info.ssid);
+        rssid = ap_info.rssi;
+    } else {
+        ESP_LOGW(TAG, "Not connected or can't get AP info (err=%d)", ret);
+        return;
     }
+   
+    uint8_t mac[6];
+    if (esp_wifi_get_mac(WIFI_IF_STA, mac) == ESP_OK) {
+        ESP_LOGI(TAG, "STA MAC: %02x:%02x:%02x:%02x:%02x:%02x",
+                 mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+        snprintf(MAC,sizeof(MAC),"%02x:%02x:%02x:%02x:%02x:%02x",mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+    }
+    else return;
+     esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (netif) {
+        esp_netif_ip_info_t ip_info;
+        if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+            ESP_LOGI(TAG, "IP: " IPSTR, IP2STR(&ip_info.ip));
+            snprintf(ip, sizeof(ip), IPSTR, IP2STR(&ip_info.ip));
+
+        } else {
+            ESP_LOGW(TAG, "No IP info yet");
+            return;
+        }
+    } else {
+        ESP_LOGW(TAG, "Can't get netif handle (WIFI_STA_DEF)");
+        return;
+    }
+    mqtt_publish_wifi_infor(ssid,MAC,ip,rssid);   
 }
-void open_webserver()
-{
-    ESP_LOGI(TAG, "Enabling AP mode for reconfiguration");
-    // Bật lại chế độ AP
+void exit_accesspoint(){
+    act_handle = false;
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_LOGI(TAG, "AP interface disabled - Device now in pure Station mode");
+}
+void reopen_network(){
+    snprintf(buffer,128,"Evsafe_%s",device_name);
     wifi_config_t wifi_config = {
         .ap = {
-            .ssid = "CHTLAB-EVsafe",
+            // .ssid = buffer,
             .ssid_len = 0,
             .channel = 1,
-            .password = "",
+            .password ="",
             .max_connection = 4,
             .authmode = WIFI_AUTH_OPEN
         },
     };
-    state_mqtt=3;
+    wifi_state=2;
+    strncpy((char *)wifi_config.ap.ssid, buffer, sizeof(wifi_config.ap.ssid) - 1);
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
-    ESP_LOGI(TAG, "AP mode re-enabled. SSID: CHTLAB-EVsafe");
+    ESP_LOGI(TAG, "AP mode re-enabled. SSID: Evsafe_%s",device_name);
 }
+ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) 
+ {
+    if(event_base == WIFI_EVENT){
+        switch (event_id)
+        {
+        case WIFI_EVENT_STA_START:
+            esp_wifi_connect();
+            break;
+        case WIFI_EVENT_STA_DISCONNECTED:
+            ESP_LOGI(TAG, "WiFi disconnected");
+            s_connected = false;
+            wifi_state=0;
+            xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+
+            wifi_mode_t mode;
+            esp_wifi_get_mode(&mode);
+
+            if (mode == WIFI_MODE_AP) {
+                ESP_LOGI("WIFI", "Đang ở chế độ Access Point");
+                wifi_state=2;
+            } else if (mode == WIFI_MODE_STA) {
+                ESP_LOGI("WIFI", "Đang ở chế độ Station");
+                reopen_network();
+            } else if (mode == WIFI_MODE_APSTA) {
+                ESP_LOGI("WIFI", "Đang ở chế độ AP + STA ");
+                wifi_state=2;
+            } else {
+                ESP_LOGI("WIFI", "Wi-Fi đang tắt hoặc không xác định");
+            }
+            break;
+        case WIFI_EVENT_AP_STACONNECTED:
+            ESP_LOGI(TAG,"User access to AP");
+            act_handle=true;
+            break;
+        case WIFI_EVENT_AP_STADISCONNECTED:
+            ESP_LOGI(TAG,"Out from setup wifi mode");
+            act_handle=false;
+            break;
+        default:
+            break;
+        }
+    }
+}
+bool check_internet() {
+    esp_http_client_config_t config = {
+        .url = "http://clients3.google.com/generate_204",
+        .timeout_ms = 5000,
+        .skip_cert_common_name_check = true,
+        .keep_alive_enable = false,
+        .transport_type = HTTP_TRANSPORT_OVER_TCP
+    };
+    
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (client == NULL) {
+        ESP_LOGE(TAG, "Failed to initialize HTTP client");
+        return false;
+    }
+
+    esp_err_t err = esp_http_client_perform(client);
+    bool has_internet = false;
+    
+    if (err == ESP_OK) {
+        int status = esp_http_client_get_status_code(client);
+        ESP_LOGI(TAG, "HTTP Status = %d", status);
+        if (status == 204) {
+            has_internet = true;
+        }
+    } else {
+        ESP_LOGE(TAG, "HTTP GET request failed: %s", esp_err_to_name(err));
+    }
+    
+    esp_http_client_cleanup(client);
+    return has_internet;
+}
+
 static void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) // internet protocol (IP)
 {
     if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ESP_LOGI(TAG, "Got IP - Disabling AP interface");
         s_connected = true;
         s_retry_num = 0; 
+        act_handle = false;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
-
+        stop_my_timer();
         // Disable access point mode after successful station connection
+        vTaskDelay(3000/portTICK_PERIOD_MS);
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
         ESP_LOGI(TAG, "AP interface disabled - Device now in pure Station mode");
     }
@@ -906,6 +292,7 @@ static void wifi_connect_sta(const char* ssid, const char* pass) // thử kết 
     strncpy((char*)sta_conf.sta.ssid, ssid, sizeof(sta_conf.sta.ssid)-1);
     strncpy((char*)sta_conf.sta.password, pass, sizeof(sta_conf.sta.password)-1);
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    esp_wifi_disconnect();
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_conf));
     ESP_ERROR_CHECK(esp_wifi_start());
     esp_err_t err = esp_wifi_connect();
@@ -960,10 +347,10 @@ static esp_err_t connect_handler(httpd_req_t *req)
         httpd_resp_sendstr(req, "Missing SSID");
         return ESP_OK;
     }
-//    ESP_LOGI(TAG, "Raw SSID: %s, PASS: %s", ssid, pass);
+    ESP_LOGI(TAG, "Raw SSID: %s, PASS: %s", ssid, pass);
     url_decode(ssid, ssid);
     url_decode(pass, pass);
-    // ESP_LOGI(TAG, "Decoded SSID: %s, PASS: %s", ssid, pass);
+    ESP_LOGI(TAG, "Decoded SSID: %s, PASS: %s", ssid, pass);
     save_credentials(ssid, pass);
     wifi_connect_sta(ssid, pass);
     httpd_resp_sendstr(req, "Connecting (saved)");
@@ -973,13 +360,13 @@ static esp_err_t connect_handler(httpd_req_t *req)
 // ---------- /status handler ----------
 static esp_err_t status_handler(httpd_req_t *req)
 {
-    if (s_connected){
-        gpio_set_level(LED_DECTEC_MQTT,1);
+    if (s_connected) {
+       // ESP_LOGE(TAG,"send wifi state connect to http");
         httpd_resp_sendstr(req, "connected");
     }
     else {
-        gpio_set_level(LED_DECTEC_MQTT,0);
-        httpd_resp_sendstr(req, "disconnected");
+        //ESP_LOGE(TAG,"send wifi state disconnect to http");
+        httpd_resp_sendstr(req, "failed");
     }
     return ESP_OK;
 }
@@ -989,6 +376,7 @@ static httpd_handle_t start_webserver(void)
 {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.stack_size = 8192; 
 
     if (httpd_start(&server, &config) == ESP_OK) {
         httpd_uri_t root = {
@@ -1022,22 +410,23 @@ static void wifi_init_softap(void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
+    snprintf(buffer,128,"Evsafe_%s",device_name);
     wifi_config_t wifi_config = {
         .ap = {
-            .ssid = "CHTLAB-EVsafe",
+            // .ssid = buffer,
             .ssid_len = 0,
             .channel = 1,
             .password = "",
             .max_connection = 4,
-            .authmode = WIFI_AUTH_OPEN,
+            .authmode =  WIFI_AUTH_OPEN
         },
     };
-    state_mqtt=3;
+    strncpy((char *)wifi_config.ap.ssid, buffer, sizeof(wifi_config.ap.ssid) - 1);
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG, " WiFi AP started. SSID: CHTLAB-EVsafe");
+    ESP_LOGI(TAG, " WiFi AP started. SSID: Evsafe_%s ",device_name);
 }
 
 // ---------- Try to load saved credentials and connect on boot ----------
@@ -1068,7 +457,7 @@ void setup_wifi_init(void)
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
-    ESP_ERROR_CHECK(ret);
+
     ESP_ERROR_CHECK(esp_netif_init()); // Khởi tạo mạng ESP
     ESP_ERROR_CHECK(esp_event_loop_create_default()); // Nhận respond từ các sự kiện (wifi, mqtt,...)
 
@@ -1082,5 +471,5 @@ void setup_wifi_init(void)
     try_connect_saved(); // nếu có credentials đã lưu, thử kết nối
     start_webserver();   // Mở web server
 
-    ESP_LOGI(TAG, " Web server started! Connect to WiFi AP 'ESP32_TEST' and open http://192.168.4.1/");
+    ESP_LOGI(TAG, " Web server started! Connect to WiFi AP 'Evsafe_%s' and open http://192.168.4.1/",device_name);
  }

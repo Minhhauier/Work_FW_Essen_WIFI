@@ -1,11 +1,15 @@
 #ifndef SETUP_WIFI_H
 #define SETUP_WIFI_H
+#include <stdbool.h>
 
 extern bool s_connected;
-// #include "esp_http_server.h"
-extern const char* html_page;
+extern const char *html_page_2;
+extern int wifi_state;
+extern bool act_handle;
 void setup_wifi_init(void);
+void exit_accesspoint();
+void reopen_network();
 void try_connect_saved();
-//httpd_handle_t start_webserver(void);
-void open_webserver();
+void publish_infor_wifi(void);
+
 #endif

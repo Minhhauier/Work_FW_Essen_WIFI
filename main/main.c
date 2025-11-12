@@ -10,11 +10,12 @@
 #include "mqtt_wifi.h"
 #include "system_manage.h"
 #include "control_led.h"
-#include "control_relay.h"
 #include "gpio_cf.h"
 #include "ota_wifi.h"
 #include "pzem.h"
-
+#include "uart.h"
+#include "config_parameter.h"
+#include "encrypt_decrypt.h"
 
 #define TAG "MAIN"
 char device_name[25];
@@ -34,42 +35,19 @@ void app_main(void)
     get_device_name(device_name);
     ESP_LOGI(TAG,"==Device name: %s==",device_name);
     ESP_LOGI(TAG, "Starting setup_wifi_init()");
-    setup_wifi_init();
-    all_led_by_status(0);
     config_gpio_detect_zero();
-    config_gpio_wifi_menu_config();
+    all_led_by_status(0);
     config_gpio_led();
-    while (s_connected == false)
-    {
-        vTaskDelay(100 / portTICK_PERIOD_MS);
-    }
-    ESP_LOGI(TAG, "WiFi connected, starting MQTT");
-    mqtt_start();
-    
-    xTaskCreate(&task_system_manage, "system_manage_task", 1024*4, NULL, 5, NULL);
-    // xTaskCreate(&pzem_task,"pzem task", 1024*4, NULL, 5, NULL);
+    configure_uart_dynamic_Pzem(UART_PZEM_NUM, 9600, TX_PZEM, RX_PZEM);
+    xTaskCreate(&task_system_manage, "system_manage_task", 1024*4, NULL, 10, NULL);
+    xTaskCreate(&pzem_task,"pzem task", 1024*4, NULL, 10, NULL);
+    xTaskCreate(&detect_wifi_task,"detect wifi task",1024*4,NULL,10,NULL);
+    //fixed can't reference to ...
     do_firmware_upgrade(NULL);
-
+    convert_to_json(NULL);
     while (1)
     {
-        if(gpio_get_level(GPIO_WIFI_CONFIG)==0)
-        {
-            while (gpio_get_level(GPIO_WIFI_CONFIG)==0)
-            {
-                vTaskDelay(100/portTICK_PERIOD_MS);
-            }
-            printf("Open menuconfig\r\n");
-            open_webserver();
-            // start_stop_timer();
-        }
-        // if(state_mqtt==3){
-        //     gpio_set_level(GPIO_WIFI_CONFIG,0);
-        //     vTaskDelay(500/portTICK_PERIOD_MS);
-        //     gpio_set_level(GPIO_WIFI_CONFIG,1);
-        //     vTaskDelay(500/portTICK_PERIOD_MS);
-        // }
         //ESP_LOGI(TAG, "Main task running...");
         vTaskDelay(1000/portTICK_PERIOD_MS);
     }
-    
 }

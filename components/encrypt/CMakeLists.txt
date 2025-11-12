@@ -1,5 +1,7 @@
+file(GLOB SRCS "*.c")
+
 idf_component_register(
-        SRCS "parse_json.c" "process_array.c" "encrypt_decrypt.c"
+        SRCS ${SRCS}
         INCLUDE_DIRS include
         REQUIRES
             driver
@@ -11,9 +13,9 @@ idf_component_register(
         PRIV_REQUIRES
             main  
             control_led  
+            control_relay
             drivers
             mqtt_wifi
             ota_wifi
-            control_relay
 
 )

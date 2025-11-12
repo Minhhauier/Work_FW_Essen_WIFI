@@ -19,10 +19,10 @@
 
 // Remember to change versions before building firmware and up git
 #define HW_VERSION      "1.0.3"
-#define FW_VERSION      "1.0.5"
+#define FW_VERSION      "1.1"
 
 //config parameter mqtt
-#define BUF_SIZE_MQTT 1024
+#define BUF_SIZE_MQTT 1024 
 
 //config parameter for relay
 #define GATE_1                  GPIO_NUM_23
@@ -41,7 +41,14 @@
 #define TX_PZEM                 27
 #define RX_PZEM                 36
 #define POWER_MIN               5
+#define POWER_MAX               3500
 #define BUF_SIZE_PZEM           1024
+// Config parameter for SIM
+#define UART_SIM_NUM           UART_NUM_1
+#define TX_SIM                  17
+#define RX_SIM                  39
+#define UART_BAUD_RATE          115200
+#define BUF_SIZE_SIM            1024
 //config parameter for led
 #define CHARGE_LED_GPIO          15
 #define CHARGE_LED_NUMBER        18

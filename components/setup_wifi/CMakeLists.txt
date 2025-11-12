@@ -1,18 +1,18 @@
 file(GLOB source "*.c")
 
 idf_component_register(
-    SRCS ${source}
-    INCLUDE_DIRS include 
-    # EMBED_TXTFILES "htm_code.html"
-    #REQUIRES
+    SRCS "setup_wifi.c" "setup_wifi_interface.c"
+    INCLUDE_DIRS include
+    REQUIRES
+        spiffs
     PRIV_REQUIRES
         esp_wifi
         esp_event
         nvs_flash
         esp_http_server
-        drivers
+        main
+        esp_http_client
 
         mqtt_wifi
-    
+        drivers
 )
-#message(STATUS "Source files: ${source}")

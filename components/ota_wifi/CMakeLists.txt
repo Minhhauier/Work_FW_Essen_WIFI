@@ -1,5 +1,7 @@
+file(GLOB source "*.c")
+
 idf_component_register(
-    SRCS "ota_wifi.c"
+    SRCS ${source}
     INCLUDE_DIRS include
     REQUIRES
         config

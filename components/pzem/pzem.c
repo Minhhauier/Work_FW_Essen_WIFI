@@ -14,6 +14,7 @@
 #include "mqtt_wifi.h"
 #include "control_relay.h"
 #include "control_led.h"
+#include "system_manage.h"
 
 #define UART_PZEM_NUM          UART_NUM_2
 #define TX_PZEM                 27
@@ -211,14 +212,9 @@ void pzem_set_address(uint8_t old_addr, uint8_t new_addr) {
         } else {
             ESP_LOGW(TAG, "Không nhận được dữ liệu từ PZEM.");
         }
-
 }
 
-
-
 void pzem_task(void *pvParameters) {
-
-    configure_uart_dynamic_Pzem(UART_PZEM_NUM, 9600, TX_PZEM, RX_PZEM);
 
     gpio_set_pull_mode(DS18B20_GPIO, GPIO_PULLUP_ONLY); // DS18B20 cần điện trở kéo lên 4.7k
     TickType_t sim_start_tick = xTaskGetTickCount();
@@ -234,7 +230,7 @@ void pzem_task(void *pvParameters) {
             PzemData_t data = pzem_read_and_feedback(addr);
             vTaskDelay(pdMS_TO_TICKS(500));  
             // delay ngắn giữa các PZEM để UART không bị dính dữ liệu
-            if(data.power>=POWER_MIN) power[addr-1] = data.power;
+            if(data.power>=POWER_MIN && data.power<=POWER_MAX) power[addr-1] = data.power;
             else power[addr-1]=0;
             if(power[addr-1]==0){
                 if(get_gate_state(addr)==GATE_CHARGE) count[addr-1]++;
@@ -257,16 +253,16 @@ void pzem_task(void *pvParameters) {
                 vTaskDelay(pdMS_TO_TICKS(100)); 
             }
         }
-        if(xTaskGetTickCount() - temp_start_tick >= pdMS_TO_TICKS(150000)){
+        if(xTaskGetTickCount() - temp_start_tick >= pdMS_TO_TICKS(500000)){
             TempData_t t = ds18b20_read_temp_struct();
             if (t.valid) {
                 ESP_LOGI("DS18B20", "Temp: %.2f C (time=%llu us)", t.value, t.timestamp);
-                temp_start_tick = xTaskGetTickCount();
                 mqtt_publish_temp(t.value);
                 
             } else {
                 ESP_LOGW("DS18B20", "Read error");
             }
+            temp_start_tick = xTaskGetTickCount();
         }
         }
         vTaskDelay(pdMS_TO_TICKS(1000)); // 2s đọc 1 lần

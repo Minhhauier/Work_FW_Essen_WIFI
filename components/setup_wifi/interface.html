@@ -1,0 +1,630 @@
+const char* html_page = R"(
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>EVsafe - Onboarding</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                height: 100vh;
+                overflow: hidden;
+            }
+
+            .container {
+                position: relative;
+                width: 428px;
+                height: 926px;
+                margin: 0 auto;
+                background: linear-gradient(to bottom, #ffffff, #d4e2ff);
+            }
+
+            /* Status Bar */
+            .status-bar {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 428px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px 28px;
+                box-sizing: border-box;
+            }
+
+            .status-time {
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 600;
+                font-size: 15px;
+                color: #363636;
+                letter-spacing: -0.165px;
+                line-height: 18px;
+            }
+
+            .status-icons {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+
+            .status-icons span {
+                font-size: 17px;
+            }
+
+            /* Logo */
+            .logo {
+                position: absolute;
+                top: 138px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 700;
+                font-size: 48px;
+                color: #363636;
+                line-height: 62px;
+            }
+
+            /* Heading */
+            .heading {
+                position: absolute;
+                top: 218px;
+                left: 50%;
+                transform: translateX(-50%);
+                text-align: center;
+                width: 372px;
+            }
+
+            .heading h1 {
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 700;
+                font-size: 32px;
+                color: #363636;
+                line-height: 38px;
+            }
+
+            .heading h2 {
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 400;
+                font-size: 20px;
+                color: #6a6a6a;
+                margin-top: 4px;
+                line-height: 24px;
+            }
+
+            /* Content Container */
+            .content {
+                position: absolute;
+                top: 344px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 372px;
+                background: #f5f6ff;
+                border-radius: 32px;
+                padding: 32px 28px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            }
+
+            /* WiFi Network Item */
+            .wifi-network {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 16px 0;
+                border-bottom: 1px solid #e5e5e5;
+                cursor: pointer;
+            }
+
+            .wifi-network:last-child {
+                border-bottom: none;
+            }
+
+            .wifi-network:hover {
+                background: #f0f0f0;
+                padding-left: 8px;
+                margin: 0 -8px;
+                border-radius: 8px;
+            }
+
+            .wifi-info {
+                display: flex;
+                align-items: center;
+                flex-grow: 1;
+            }
+
+            .wifi-signal {
+                margin-right: 12px;
+                font-size: 16px;
+            }
+
+            .wifi-name {
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 500;
+                font-size: 18px;
+                color: #363636;
+                margin-right: 8px;
+            }
+
+            .wifi-security {
+                font-size: 12px;
+                color: #999;
+            }
+
+            /* Signal Strength CSS Bars */
+            .signal-bars {
+                display: inline-flex;
+                align-items: flex-end;
+                gap: 2px;
+                width: 16px;
+                height: 12px;
+                margin-right: 12px;
+            }
+
+            .signal-bar {
+                background: #ccc;
+                border-radius: 1px;
+                transition: all 0.3s ease;
+            }
+
+            .signal-bar:nth-child(1) { width: 2px; height: 3px; }
+            .signal-bar:nth-child(2) { width: 2px; height: 6px; }
+            .signal-bar:nth-child(3) { width: 2px; height: 9px; }
+            .signal-bar:nth-child(4) { width: 2px; height: 12px; }
+
+            /* Signal strength levels */
+            .signal-weak .signal-bar:nth-child(1) { background: #ff6b6b; }
+            .signal-medium .signal-bar:nth-child(1),
+            .signal-medium .signal-bar:nth-child(2) { background: #ffd93d; }
+            .signal-strong .signal-bar:nth-child(1),
+            .signal-strong .signal-bar:nth-child(2),
+            .signal-strong .signal-bar:nth-child(3) { background: #6bcf7f; }
+            .signal-excellent .signal-bar:nth-child(1),
+            .signal-excellent .signal-bar:nth-child(2),
+            .signal-excellent .signal-bar:nth-child(3),
+            .signal-excellent .signal-bar:nth-child(4) { background: #4dabf7; }
+
+            /* Scan Button */
+            .scan-button {
+                width: 100%;
+                background: #363636;
+                color: white;
+                border: none;
+                padding: 16px;
+                border-radius: 16px;
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 600;
+                font-size: 18px;
+                cursor: pointer;
+                margin-top: 20px;
+            }
+
+            .scan-button:hover {
+                background: #2a2a2a;
+            }
+
+            .scan-button:disabled {
+                background: #ccc;
+                cursor: not-allowed;
+            }
+
+            /* Popup Styles */
+            .popup-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+            }
+
+            .popup {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: white;
+                padding: 32px 28px;
+                border-radius: 24px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                width: 320px;
+                max-width: 90vw;
+            }
+
+            .popup-title {
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 700;
+                font-size: 20px;
+                color: #363636;
+                margin-bottom: 8px;
+                text-align: center;
+            }
+
+            .popup-subtitle {
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 400;
+                font-size: 16px;
+                color: #6a6a6a;
+                margin-bottom: 24px;
+                text-align: center;
+            }
+
+            .popup-input {
+                width: 100%;
+                padding: 12px 16px;
+                border: 2px solid #e5e5e5;
+                border-radius: 12px;
+                font-family: 'DM Sans', sans-serif;
+                font-size: 16px;
+                margin-bottom: 24px;
+                box-sizing: border-box;
+            }
+
+            .popup-input:focus {
+                outline: none;
+                border-color: #363636;
+            }
+
+            .popup-buttons {
+                display: flex;
+                gap: 12px;
+            }
+
+            .popup-button {
+                flex: 1;
+                padding: 12px 16px;
+                border: none;
+                border-radius: 12px;
+                font-family: 'DM Sans', sans-serif;
+                font-weight: 600;
+                font-size: 16px;
+                cursor: pointer;
+            }
+
+            .popup-button.cancel {
+                background: #f5f5f5;
+                color: #363636;
+            }
+
+            .popup-button.connect {
+                background: #363636;
+                color: white;
+            }
+
+            .popup-button:hover {
+                opacity: 0.9;
+            }
+
+            .popup-button:disabled {
+                background: #ccc;
+                color: #999;
+                cursor: not-allowed;
+            }
+
+            /* Debug Button */
+            .debug-button {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #ff6b6b;
+                color: white;
+                border: none;
+                padding: 8px 12px;
+                border-radius: 8px;
+                font-size: 12px;
+                cursor: pointer;
+                z-index: 999;
+            }
+
+            .debug-popup {
+                position: fixed;
+                top: 10%;
+                left: 5%;
+                width: 90%;
+                height: 70%;
+                background: #1e1e1e;
+                color: #fff;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+                z-index: 1001;
+                overflow: auto;
+                font-family: monospace;
+            }
+
+            .debug-close {
+                position: absolute;
+                top: 10px;
+                right: 15px;
+                background: none;
+                border: none;
+                color: #fff;
+                font-size: 20px;
+                cursor: pointer;
+            }
+
+            .loading-text {
+                color: #6a6a6a;
+                font-style: italic;
+                text-align: center;
+                padding: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <span class="status-time">EVsafe</span>
+                <div class="status-icons">
+                    <span>📶</span>
+                    <span>📶</span>
+                    <span>🔋</span>
+                </div>
+            </div>
+
+            <!-- Logo -->
+            <div class="logo">EVsafe</div>
+
+            <!-- Heading -->
+            <div class="heading">
+                <h1>Thiết lập WiFi</h1>
+                <h2>Chọn mạng WiFi để kết nối</h2>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+                <div id="wifiList">
+                    <div class="loading-text">Nhấn "Quét WiFi" để tìm mạng</div>
+                </div>
+                <button class="scan-button" onclick="scanWifi()">Quét WiFi</button>
+            </div>
+        </div>
+
+        <!-- WiFi Password Popup -->
+        <div class="popup-overlay" id="wifiPopup">
+            <div class="popup">
+                <div class="popup-title" id="popupTitle">Kết nối WiFi</div>
+                <div class="popup-subtitle" id="popupSubtitle">Nhập mật khẩu cho mạng</div>
+                <input type="password" class="popup-input" id="wifiPassword" placeholder="Mật khẩu WiFi" />
+                <div class="popup-buttons"></div>
+                    <button class="popup-button cancel" onclick="closeWifiPopup()">Hủy</button>
+                    <button class="popup-button connect" onclick="connectWifi()">Kết nối</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Button -->
+        <button class="debug-button" onclick="showDebugInfo()">Debug</button>
+        
+        <!-- Debug Popup -->
+        <div class="debug-popup" id="debugPopup" style="display: none;">
+            <button class="debug-close" onclick="hideDebugInfo()">&times;</button>
+            <pre id="debugContent">Debug information will appear here...</pre>
+        </div>
+
+        <script>
+            let wifiNetworks = []
+            let selectedWifi = null
+            let debugData = {}
+
+            // Update debug info
+            function updateDebugInfo(key, value) {
+                debugData[key] = value
+                debugData.timestamp = new Date().toLocaleString()
+            }
+
+            // Show debug popup
+            function showDebugInfo() {
+                document.getElementById('debugContent').textContent = JSON.stringify(debugData, null, 2)
+                document.getElementById('debugPopup').style.display = 'block'
+            }
+
+            // Hide debug popup
+            function hideDebugInfo() {
+                document.getElementById('debugPopup').style.display = 'none'
+            }
+
+            // Scan for WiFi networks
+            async function scanWifi() {
+                const scanButton = document.querySelector('.scan-button')
+                const wifiList = document.getElementById('wifiList')
+                
+                // Show scanning state
+                scanButton.disabled = true
+                scanButton.textContent = 'Đang quét...'
+                wifiList.innerHTML = '<div class="loading-text">Đang tìm kiếm mạng WiFi...</div>'
+                
+                updateDebugInfo('scan_start', 'Bắt đầu quét WiFi')
+                
+                try {
+                    const response = await fetch('/scan')
+                    const data = await response.text()
+                    
+                    updateDebugInfo('scan_response', data)
+                    
+                    // Parse the response as text lines (no JSON handling)
+                    if (data) {
+                        const lines = data.split('\n').filter(line => line.trim())
+                        wifiNetworks = lines.map(line => {
+                            const parts = line.split(',')
+                            return {
+                                ssid: parts[0] || line,
+                                rssi: parseInt(parts[1]) || -50,
+                                encryption: parts[2] || 'open'
+                            }
+                        })
+                        
+                        updateDebugInfo('parsed_networks', wifiNetworks)
+                        displayWifiNetworks()
+                    } else {
+                        wifiList.innerHTML = '<div class="loading-text">Không tìm thấy mạng WiFi. Hãy thử quét lại.</div>'
+                        updateDebugInfo('scan_result', 'Không có dữ liệu')
+                    }
+                } catch (error) {
+                    console.error('Scan failed:', error)
+                    wifiList.innerHTML = '<div class="loading-text">Lỗi quét WiFi. Hãy thử quét lại.</div>'
+                    updateDebugInfo('scan_error', error.toString())
+                }
+                
+                // Reset button
+                scanButton.disabled = false
+                scanButton.textContent = 'Quét WiFi'
+            }
+
+            // Display WiFi networks
+            function displayWifiNetworks() {
+                const wifiList = document.getElementById('wifiList')
+                
+                if (wifiNetworks.length === 0) {
+                    wifiList.innerHTML = '<div class="loading-text">Không tìm thấy mạng WiFi. Hãy thử quét lại.</div>'
+                    return
+                }
+
+                wifiList.innerHTML = wifiNetworks.map(network => {
+                    const signalStrength = getSignalStrength(network.rssi || -50)
+                    const hasPassword = network.encryption !== 'open' && network.encryption !== 'none'
+                    
+                    return `
+                        <div class="wifi-network" onclick="selectWifi('${network.ssid || network.name}', ${hasPassword})">
+                            <div class="wifi-info">
+                                <div class="signal-bars ${signalStrength}">
+                                    <div class="signal-bar"></div>
+                                    <div class="signal-bar"></div>
+                                    <div class="signal-bar"></div>
+                                    <div class="signal-bar"></div>
+                                </div>
+                                <span class="wifi-name">${network.ssid || network.name}</span>
+                                <span class="wifi-security">${hasPassword ? '🔒' : ''}</span>
+                            </div>
+                        </div>
+                    `
+                }).join('')
+            }
+
+            // Get signal strength class
+            function getSignalStrength(rssi) {
+                if (rssi > -30) return 'signal-excellent'
+                if (rssi > -50) return 'signal-strong'
+                if (rssi > -70) return 'signal-medium'
+                return 'signal-weak'
+            }
+
+            // Select WiFi network
+            function selectWifi(ssid, hasPassword) {
+                selectedWifi = wifiNetworks.find(network => (network.ssid || network.name) === ssid)
+                selectedWifi.hasPassword = hasPassword
+                
+                updateDebugInfo('selected_wifi', selectedWifi)
+                
+                document.getElementById('popupTitle').textContent = `Kết nối tới ${ssid}`
+                document.getElementById('popupSubtitle').textContent = hasPassword ? 'Nhập mật khẩu để kết nối' : 'Nhấn kết nối để tiếp tục'
+                document.getElementById('wifiPassword').style.display = hasPassword ? 'block' : 'none'
+                document.getElementById('wifiPassword').value = ''
+                
+                if (hasPassword) {
+                    document.getElementById('wifiPassword').focus()
+                }
+                
+                document.getElementById('wifiPopup').style.display = 'block'
+            }
+
+            // Close WiFi popup
+            function closeWifiPopup() {
+                document.getElementById('wifiPopup').style.display = 'none'
+                selectedWifi = null
+            }
+
+            // Connect to WiFi
+            async function connectWifi() {
+                if (selectedWifi) {
+                    const password = document.getElementById('wifiPassword').value
+                    const networkName = selectedWifi.ssid || selectedWifi.name
+
+                    if (selectedWifi.hasPassword && !password) {
+                        alert('Vui lòng nhập mật khẩu WiFi')
+                        return
+                    }
+
+                    // Show connecting status
+                    document.getElementById('popupSubtitle').textContent = 'Đang kết nối...'
+                    document.querySelector('.popup-button.connect').textContent = 'Đang kết nối...'
+                    document.querySelector('.popup-button.connect').disabled = true
+
+                    try {
+                        // Send connect request to ESP32
+                        const body = 'ssid=' + encodeURIComponent(networkName) + '&pass=' + encodeURIComponent(password)
+                        const response = await fetch('/connect', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+                            body: body
+                        })
+                        
+                        const result = await response.text()
+                        document.getElementById('popupSubtitle').textContent = result
+                        
+                        updateDebugInfo('connect_response', result)
+                        
+                        // Poll connection status
+                        for (let i = 0; i < 10; i++) {
+                            await new Promise(resolve => setTimeout(resolve, 1000))
+                            
+                            try {
+                                const statusResponse = await fetch('/status')
+                                const status = await statusResponse.text()
+                                
+                                updateDebugInfo('status_check_' + i, status)
+                                
+                                if (status.indexOf('connected') >= 0) {
+                                    document.getElementById('popupSubtitle').textContent = 'Kết nối thành công!'
+                                    updateDebugInfo('connection_result', 'success')
+                                    setTimeout(() => {
+                                        closeWifiPopup()
+                                        alert('Kết nối WiFi thành công!')
+                                    }, 1500)
+                                    return
+                                }
+                                
+                                document.getElementById('popupSubtitle').textContent = `Đang thử kết nối... (${i + 1}/10)`
+                            } catch (statusError) {
+                                console.error('Status check failed:', statusError)
+                                updateDebugInfo('status_error_' + i, statusError.toString())
+                            }
+                        }
+                        
+                        // If we get here, connection failed
+                        document.getElementById('popupSubtitle').textContent = 'Kết nối thất bại. Vui lòng thử lại.'
+                        updateDebugInfo('connection_result', 'failed - timeout')
+                        
+                    } catch (error) {
+                        console.error('Connect failed:', error)
+                        document.getElementById('popupSubtitle').textContent = 'Lỗi kết nối. Vui lòng thử lại.'
+                        updateDebugInfo('connect_error', error.toString())
+                    }
+                    
+                    // Reset button state
+                    document.querySelector('.popup-button.connect').textContent = 'Kết nối'
+                    document.querySelector('.popup-button.connect').disabled = false
+                }
+            }
+
+            // Handle Enter key in password input
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('wifiPassword').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        connectWifi()
+                    }
+                })
+            })
+        </script>
+    </body>
+</html>
+)";
