@@ -18,8 +18,8 @@
 #endif
 
 // Remember to change versions before building firmware and up git
-#define HW_VERSION      "1.0.3"
-#define FW_VERSION      "1.1"
+#define HW_VERSION      "1.0.0"
+#define FW_VERSION      "1.0.2"
 
 //config parameter mqtt
 #define BUF_SIZE_MQTT 1024 
