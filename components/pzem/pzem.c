@@ -247,13 +247,13 @@ void pzem_task(void *pvParameters) {
             if(data.power>=POWER_MIN) detect_power=1;
         }
         if(detect_power){
-            if(xTaskGetTickCount() - sim_start_tick >= pdMS_TO_TICKS(10000)){
+            if(xTaskGetTickCount() - sim_start_tick >= pdMS_TO_TICKS(1000)){
                 sim_start_tick = xTaskGetTickCount();
                 mqtt_publish_data_power(power,vol);
                 vTaskDelay(pdMS_TO_TICKS(100)); 
             }
         }
-        if(xTaskGetTickCount() - temp_start_tick >= pdMS_TO_TICKS(500000)){
+        if(xTaskGetTickCount() - temp_start_tick >= pdMS_TO_TICKS(10000)){
             TempData_t t = ds18b20_read_temp_struct();
             if (t.valid) {
                 ESP_LOGI("DS18B20", "Temp: %.2f C (time=%llu us)", t.value, t.timestamp);

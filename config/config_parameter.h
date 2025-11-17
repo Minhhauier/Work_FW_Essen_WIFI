@@ -4,8 +4,8 @@
 #include <driver/gpio.h>
 
 // DEVICE_PROD for production device, DEVICE_DEV for development device
-#define DEVICE_PROD 1
-
+#define DEVICE_PROD
+//#define DEVICE_DEV
 #ifdef DEVICE_DEV
     #define DEVICE_NAME "EVsafe"
     #define SUB         "SU"
