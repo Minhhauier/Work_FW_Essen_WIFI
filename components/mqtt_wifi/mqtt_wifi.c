@@ -158,12 +158,12 @@ void mqtt_start(){
 void mqtt_publish_data_power(float *value_power,int *value_vol){
     snprintf(json,sizeof(json),"{\n"
         "  \"data\": {\n"
-        "    \"gun1\": { \"power\": %f,\"vol\": %d },\n"
-        "    \"gun2\": { \"power\": %f,\"vol\": %d },\n"
-        "    \"gun3\": { \"power\": %f,\"vol\": %d },\n"
-        "    \"gun4\": { \"power\": %f,\"vol\": %d },\n"
-        "    \"gun5\": { \"power\": %f,\"vol\": %d },\n"
-        "    \"gun6\": { \"power\": %f,\"vol\": %d }\n"
+        "    \"gun1\": { \"power\": %.2f,\"vol\": %d },\n"
+        "    \"gun2\": { \"power\": %.2f,\"vol\": %d },\n"
+        "    \"gun3\": { \"power\": %.2f,\"vol\": %d },\n"
+        "    \"gun4\": { \"power\": %.2f,\"vol\": %d },\n"
+        "    \"gun5\": { \"power\": %.2f,\"vol\": %d },\n"
+        "    \"gun6\": { \"power\": %.2f,\"vol\": %d }\n"
         "  }\n"
         "}",value_power[0],value_vol[0],
             value_power[1],value_vol[1],
