@@ -11,5 +11,5 @@ void exit_accesspoint();
 void reopen_network();
 void try_connect_saved();
 void publish_infor_wifi(void);
-
+ void scan_wifi_to_connect();
 #endif

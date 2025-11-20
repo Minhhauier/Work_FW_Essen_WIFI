@@ -30,7 +30,8 @@ void task_system_manage(void *pvParameter)
     while (s_connected == false)
     {
         if(act_handle==false && mqtt_connected==false){
-            try_connect_saved();
+            scan_wifi_to_connect();
+            //try_connect_saved();
             printf("Try connect wifi saved\r\n");
             //count=0;
         }
@@ -41,7 +42,8 @@ void task_system_manage(void *pvParameter)
     while (1)
     {
         if(act_handle==false && mqtt_connected==false){
-            try_connect_saved();
+            //try_connect_saved();
+            scan_wifi_to_connect();
             printf("Try connect wifi saved\r\n");
             //count=0;
         }

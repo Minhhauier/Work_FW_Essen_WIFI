@@ -35,7 +35,9 @@ static const char *TAG = "ESP_WEB";
 #define WIFI_MAXIMUM_RETRY 3
 static int s_retry_num = 0;
 #define MAX_SAVED_WIFI 5 // Maximum number of WiFi to store in NVS
-
+RTC_DATA_ATTR wifi_ap_record_t ap_info_wf[20];
+RTC_DATA_ATTR uint16_t ap_num_wf = 20;
+bool scanned = false;
 // ---------- Handler trang chính ----------
 static esp_err_t root_get_handler(httpd_req_t *req)
 {
@@ -78,6 +80,7 @@ static esp_err_t action_handler(httpd_req_t *req)
 // }
 static esp_err_t scan_handler(httpd_req_t *req)
 {
+    printf("scan started...\r\n");
     act_handle = true;
     wifi_scan_config_t scan_config = {
         .ssid = 0,
@@ -92,7 +95,7 @@ static esp_err_t scan_handler(httpd_req_t *req)
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_sendstr_chunk(req, "[");
-
+    printf("scan done\r\n");
     for (int i = 0; i < ap_num; i++)
     {
         char esc_ssid[33];
@@ -133,67 +136,6 @@ static esp_err_t scan_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-static void scan_wifi_to_connect()
-{
-    wifi_scan_config_t scan_config = {
-        .ssid = 0,
-        .bssid = 0,
-        .channel = 0,
-        .show_hidden = false};
-
-    esp_wifi_scan_start(&scan_config, true);
-    ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
-    uint16_t ap_num = 20;
-    wifi_ap_record_t ap_info[20];
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_num, ap_info));
-
-    nvs_handle_t h;
-    esp_err_t err = nvs_open("storage", NVS_READWRITE, &h);
-    if (err != ESP_OK)
-        return err;
-
-    int32_t count = 0;
-    if (nvs_get_i32(h, "cred_count", &count) != ESP_OK)
-    {
-        count = 0;
-    }
-
-    for (int i = 0; i < ap_num; i++)
-    {
-        char esc_ssid[33];//esp scan ssid 
-        strncpy(esc_ssid, (char *)ap_info[i].ssid, sizeof(esc_ssid) - 1);
-        esc_ssid[32] = 0;
-        for (int j = 0; j < count; j++)
-        {
-            char ssid_key[64];
-            char stored_ssid[64];
-            char stored_pass[64];
-            size_t required = sizeof(stored_ssid);
-            snprintf(ssid_key, sizeof(ssid_key), "ssid%d", i);
-            if (nvs_get_str(h, ssid_key, NULL, &required) == ESP_OK && required <= sizeof(stored_ssid))
-            {
-                nvs_get_str(h, ssid_key, stored_ssid, &required);
-                if (strcmp(stored_ssid, esc_ssid) == 0)
-                {
-                    char pass_key[64];
-                    snprintf(pass_key, sizeof(pass_key), "pass%d", i);
-                    if (nvs_get_str(h, pass_key, NULL, &required) == ESP_OK && required <= sizeof(required))
-                    {
-                        nvs_get_str(h, pass_key, stored_pass, &required);
-                    }
-                    printf("Found saved wifi: %s\r\n connecting....",stored_ssid);
-                    if(strlen(stored_ssid)>0){
-                        wifi_connect_sta(stored_ssid,stored_pass);
-                        break;
-                    }
-                    //return ESP_OK;    
-                }
-            }
-        }
-        nvs_commit(h);
-        nvs_close(h);
-    }
-}
 
 void publish_infor_wifi(void)
 {
@@ -323,38 +265,23 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
 bool check_internet()
 {
     esp_http_client_config_t config = {
-        .url = "http://clients3.google.com/generate_204",
-        .timeout_ms = 5000,
-        .skip_cert_common_name_check = true,
-        .keep_alive_enable = false,
-        .transport_type = HTTP_TRANSPORT_OVER_TCP};
-
+        .url = "http://connectivitycheck.gstatic.com/generate_204",
+        .timeout_ms = 1500,     // timeout nhỏ (1.5s)
+        .method = HTTP_METHOD_GET,
+    };
     esp_http_client_handle_t client = esp_http_client_init(&config);
-    if (client == NULL)
-    {
-        ESP_LOGE(TAG, "Failed to initialize HTTP client");
-        return false;
-    }
 
-    esp_err_t err = esp_http_client_perform(client);
-    bool has_internet = false;
-
-    if (err == ESP_OK)
-    {
+    if (esp_http_client_perform(client) == ESP_OK) {
         int status = esp_http_client_get_status_code(client);
-        ESP_LOGI(TAG, "HTTP Status = %d", status);
-        if (status == 204)
-        {
-            has_internet = true;
+        esp_http_client_cleanup(client);
+
+        if (status == 204) {
+            return true; // OK có mạng
         }
-    }
-    else
-    {
-        ESP_LOGE(TAG, "HTTP GET request failed: %s", esp_err_to_name(err));
     }
 
     esp_http_client_cleanup(client);
-    return has_internet;
+    return false; // Không có mạng
 }
 
 static void ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) // internet protocol (IP)
@@ -670,6 +597,78 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
     }
 }
 
+ void scan_wifi_to_connect()
+{
+    if(!scanned)
+    {
+        vTaskDelay(4000/portTICK_PERIOD_MS);
+        wifi_scan_config_t scan_config = {
+            .ssid = 0,
+            .bssid = 0,
+            .channel = 0,
+            .show_hidden = false};
+
+        esp_wifi_scan_start(&scan_config, true);
+        ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
+
+        ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_num_wf, ap_info_wf));
+        printf("scan done\r\n");
+       // vTaskDelay(8000/portTICK_PERIOD_MS);
+        scanned=true;
+    }
+    nvs_handle_t h;
+    esp_err_t err = nvs_open("storage", NVS_READWRITE, &h);
+    if (err != ESP_OK)
+        return;
+
+    int32_t count = 0;
+    if (nvs_get_i32(h, "cred_count", &count) != ESP_OK)
+    {
+        count = 0;
+    }
+    printf("compare %d\r\n",(int)count);
+    for (int i = 0; i < ap_num_wf; i++)
+    {
+        char esc_ssid[33];//esp scan ssid 
+        strncpy(esc_ssid, (char *)ap_info_wf[i].ssid, sizeof(esc_ssid) - 1);
+        url_decode(esc_ssid,esc_ssid);
+        esc_ssid[32] = 0;
+        for (int j = 0; j < count; j++)
+        {
+            char ssid_key[64];
+            char stored_ssid[64];
+            char stored_pass[64];
+            size_t required = sizeof(stored_ssid);
+            snprintf(ssid_key, sizeof(ssid_key), "ssid%d", j);
+            if (nvs_get_str(h, ssid_key, NULL, &required) == ESP_OK && required <= sizeof(stored_ssid))
+            {
+                nvs_get_str(h, ssid_key, stored_ssid, &required);
+                printf("stored_ssid: %s\r\n",stored_ssid);
+                if (strcmp(stored_ssid, esc_ssid) == 0)
+                {
+                    char pass_key[64];
+                    snprintf(pass_key, sizeof(pass_key), "pass%d", j);
+                    if (nvs_get_str(h, pass_key, NULL, &required) == ESP_OK && required <= sizeof(pass_key))
+                    {
+                        nvs_get_str(h, pass_key, stored_pass, &required);
+                        printf(stored_pass);
+                    }
+                    printf("Found saved wifi: %s\r\n connecting....",stored_ssid);
+                    if(strlen(stored_ssid)>0){
+                        wifi_connect_sta(stored_ssid,stored_pass);
+                        bool internet_possible = check_internet();
+                        if(internet_possible) break;
+                    }
+                    //return ESP_OK;    
+                }
+            }
+        }
+        nvs_commit(h);
+        nvs_close(h);
+    }
+}
+
+
 void setup_wifi_init(void)
 {
     esp_err_t ret = nvs_flash_init();
@@ -689,7 +688,8 @@ void setup_wifi_init(void)
     esp_netif_create_default_wifi_ap();
     esp_netif_create_default_wifi_sta();
     wifi_init_softap();  // Khởi tạo AP (với chế độ APSTA) chế độ ap (access point - điểm truy cập) dùng để cấu hình
-    try_connect_saved(); // nếu có credentials đã lưu, thử kết nối
+    // /try_connect_saved(); // nếu có credentials đã lưu, thử kết nối
+    scan_wifi_to_connect();
     start_webserver();   // Mở web server
 
     ESP_LOGI(TAG, " Web server started! Connect to WiFi AP 'Evsafe_%s' and open http://192.168.4.1/", device_name);

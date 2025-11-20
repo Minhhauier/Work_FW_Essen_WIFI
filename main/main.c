@@ -39,7 +39,7 @@ void app_main(void)
     all_led_by_status(0);
     config_gpio_led();
     configure_uart_dynamic_Pzem(UART_PZEM_NUM, 9600, TX_PZEM, RX_PZEM);
-    xTaskCreate(&task_system_manage, "system_manage_task", 1024*4, NULL, 10, NULL);
+    xTaskCreate(&task_system_manage, "system_manage_task", 1024*8, NULL, 10, NULL);
     xTaskCreate(&pzem_task,"pzem task", 1024*4, NULL, 10, NULL);
     xTaskCreate(&detect_wifi_task,"detect wifi task",1024*4,NULL,10,NULL);
     //fixed can't reference to ...
