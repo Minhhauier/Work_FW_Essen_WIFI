@@ -6,6 +6,7 @@ extern bool s_connected;
 extern const char *html_page_2;
 extern int wifi_state;
 extern bool act_handle;
+extern bool scanned;
 void setup_wifi_init(void);
 void exit_accesspoint();
 void reopen_network();

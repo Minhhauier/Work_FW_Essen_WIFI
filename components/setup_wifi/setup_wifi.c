@@ -38,6 +38,11 @@ static int s_retry_num = 0;
 RTC_DATA_ATTR wifi_ap_record_t ap_info_wf[20];
 RTC_DATA_ATTR uint16_t ap_num_wf = 20;
 bool scanned = false;
+int rescan=0;
+bool got_ip = false;
+
+
+bool internet_possible;
 // ---------- Handler trang chính ----------
 static esp_err_t root_get_handler(httpd_req_t *req)
 {
@@ -262,8 +267,7 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
         }
     }
 }
-bool check_internet()
-{
+bool check_internet(){
     esp_http_client_config_t config = {
         .url = "http://connectivitycheck.gstatic.com/generate_204",
         .timeout_ms = 1500,     // timeout nhỏ (1.5s)
@@ -291,6 +295,7 @@ static void ip_event_handler(void *arg, esp_event_base_t event_base, int32_t eve
         ESP_LOGI(TAG, "Got IP - Disabling AP interface");
         s_connected = true;
         s_retry_num = 0;
+        internet_possible = check_internet();
         act_handle = false;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
         stop_my_timer();
@@ -626,7 +631,7 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
     {
         count = 0;
     }
-    printf("compare %d\r\n",(int)count);
+    printf("Found %d saved wifi\r\n",(int)count);
     for (int i = 0; i < ap_num_wf; i++)
     {
         char esc_ssid[33];//esp scan ssid 
@@ -651,16 +656,28 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
                     if (nvs_get_str(h, pass_key, NULL, &required) == ESP_OK && required <= sizeof(pass_key))
                     {
                         nvs_get_str(h, pass_key, stored_pass, &required);
-                        printf(stored_pass);
+                        printf("password %s\r\n",stored_pass);
                     }
-                    printf("Found saved wifi: %s\r\n connecting....",stored_ssid);
+                    printf("Found saved wifi: %s\r\n connecting....\r\n",stored_ssid);
                     if(strlen(stored_ssid)>0){
                         wifi_connect_sta(stored_ssid,stored_pass);
-                        bool internet_possible = check_internet();
+                        int count=0;
+                        while (!internet_possible)
+                        {
+                            count++;
+                            printf("=> test wifi internet (%d/5)\r\n",count);
+                            if(count>5) break;
+                            vTaskDelay(1000/portTICK_PERIOD_MS);
+                        }
                         if(internet_possible) break;
                     }
                     //return ESP_OK;    
                 }
+            }
+            rescan++;
+            if(rescan>2*count){
+                scanned=false;
+                rescan=0;
             }
         }
         nvs_commit(h);

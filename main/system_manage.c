@@ -30,12 +30,12 @@ void task_system_manage(void *pvParameter)
     while (s_connected == false)
     {
         if(act_handle==false && mqtt_connected==false){
+            printf("==Try connect saved wifi\r\n");
             scan_wifi_to_connect();
             //try_connect_saved();
-            printf("Try connect wifi saved\r\n");
             //count=0;
         }
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        vTaskDelay(20000 / portTICK_PERIOD_MS);
     }
     ESP_LOGI(TAG, "WiFi connected, starting MQTT");
     mqtt_start();
@@ -43,10 +43,10 @@ void task_system_manage(void *pvParameter)
     {
         if(act_handle==false && mqtt_connected==false){
             //try_connect_saved();
+            printf("==Try connect saved wifi\r\n");
             scan_wifi_to_connect();
-            printf("Try connect wifi saved\r\n");
             //count=0;
         }
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        vTaskDelay(20000 / portTICK_PERIOD_MS);
     }
 }

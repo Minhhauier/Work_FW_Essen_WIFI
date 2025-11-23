@@ -44,7 +44,7 @@ void app_main(void)
     xTaskCreate(&detect_wifi_task,"detect wifi task",1024*4,NULL,10,NULL);
     //fixed can't reference to ...
     do_firmware_upgrade(NULL);
-    convert_to_json(NULL);
+    convert_to_json(NULL);  
     while (1)
     {
         //ESP_LOGI(TAG, "Main task running...");
