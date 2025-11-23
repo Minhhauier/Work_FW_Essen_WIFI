@@ -612,8 +612,9 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
 
  void scan_wifi_to_connect()
 {
-    if(!scanned)
-    {
+    if(got_ip) return;
+    // if(!scanned)
+    // {
         //vTaskDelay(10000/portTICK_PERIOD_MS);
         wifi_scan_config_t scan_config = {
             .ssid = 0,
@@ -627,8 +628,8 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
         ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_num_wf, ap_info_wf));
         printf("scan done\r\n");
         
-        scanned=true;
-    }
+    //     scanned=true;
+    // }
     nvs_handle_t h;
     esp_err_t err = nvs_open("storage", NVS_READWRITE, &h);
     if (err != ESP_OK)
@@ -672,10 +673,11 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
                     if(strlen(stored_ssid)>0){
                         printf("try connect\r\n");
                         wifi_connect_sta(stored_ssid,stored_pass);
+                        int dem=0;
                         while(got_ip==false)
                         {
-                            count++;
-                            if(count>5) break;
+                            dem++;
+                            if(dem>5) break;
                             vTaskDelay(1000/portTICK_PERIOD_MS);
                         }
                         // int count=0;
@@ -719,10 +721,10 @@ void setup_wifi_init(void)
     esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &ip_event_handler, NULL);
 
     esp_netif_create_default_wifi_ap();
-    //esp_netif_create_default_wifi_sta();
+    esp_netif_create_default_wifi_sta();
     wifi_init_softap();  // Khởi tạo AP (với chế độ APSTA) chế độ ap (access point - điểm truy cập) dùng để cấu hình
-    // /try_connect_saved(); // nếu có credentials đã lưu, thử kết nối
-   // scan_wifi_to_connect();
+    try_connect_saved(); // nếu có credentials đã lưu, thử kết nối
+//   scan_wifi_to_connect();
     start_webserver();   // Mở web server
 
     ESP_LOGI(TAG, " Web server started! Connect to WiFi AP 'Evsafe_%s' and open http://192.168.4.1/", device_name);
