@@ -6,6 +6,7 @@
         "config_parameter.h": "c",
         "ota_wifi.h": "c",
         "setup_wifi.h": "c",
-        "gpio_cf.h": "c"
+        "gpio_cf.h": "c",
+        "charconv": "c"
     }
 }

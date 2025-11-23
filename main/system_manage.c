@@ -27,10 +27,13 @@ void task_system_manage(void *pvParameter)
     snprintf(topic, sizeof(topic), "%s/SmartEVsafe", PUB);
     setup_wifi_init();
     // wifi_state=2;
-    while (s_connected == false)
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+    while (got_ip == false)
     {
         if(act_handle==false && mqtt_connected==false){
             printf("==Try connect saved wifi\r\n");
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+           // if(got_ip)  break;
             scan_wifi_to_connect();
             //try_connect_saved();
             //count=0;
@@ -44,6 +47,7 @@ void task_system_manage(void *pvParameter)
         if(act_handle==false && mqtt_connected==false){
             //try_connect_saved();
             printf("==Try connect saved wifi\r\n");
+            if(got_ip)  break;
             scan_wifi_to_connect();
             //count=0;
         }

@@ -36,6 +36,8 @@ static const char *TAG = "ESP_WEB";
 static int s_retry_num = 0;
 #define MAX_SAVED_WIFI 5 // Maximum number of WiFi to store in NVS
 RTC_DATA_ATTR wifi_ap_record_t ap_info_wf[20];
+
+
 RTC_DATA_ATTR uint16_t ap_num_wf = 20;
 bool scanned = false;
 int rescan=0;
@@ -225,10 +227,15 @@ static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t e
         case WIFI_EVENT_STA_START:
             esp_wifi_connect();
             break;
+        case WIFI_EVENT_STA_CONNECTED:
+            s_connected = true;
+            printf("connected to wifi successful\r\n");
+            break;
         case WIFI_EVENT_STA_DISCONNECTED:
             ESP_LOGI(TAG, "WiFi disconnected");
             s_connected = false;
             wifi_state = 0;
+            got_ip = false;
             xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
 
             wifi_mode_t mode;
@@ -292,10 +299,11 @@ static void ip_event_handler(void *arg, esp_event_base_t event_base, int32_t eve
 {
     if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
+        got_ip = true;
         ESP_LOGI(TAG, "Got IP - Disabling AP interface");
         s_connected = true;
         s_retry_num = 0;
-        internet_possible = check_internet();
+        
         act_handle = false;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
         stop_my_timer();
@@ -606,19 +614,19 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
 {
     if(!scanned)
     {
-        vTaskDelay(4000/portTICK_PERIOD_MS);
+        //vTaskDelay(10000/portTICK_PERIOD_MS);
         wifi_scan_config_t scan_config = {
             .ssid = 0,
             .bssid = 0,
             .channel = 0,
             .show_hidden = false};
 
-        esp_wifi_scan_start(&scan_config, true);
+        //esp_wifi_scan_start(&scan_config, true);
         ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
-
+        vTaskDelay(4000/portTICK_PERIOD_MS);
         ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&ap_num_wf, ap_info_wf));
         printf("scan done\r\n");
-       // vTaskDelay(8000/portTICK_PERIOD_MS);
+        
         scanned=true;
     }
     nvs_handle_t h;
@@ -638,6 +646,7 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
         strncpy(esc_ssid, (char *)ap_info_wf[i].ssid, sizeof(esc_ssid) - 1);
         url_decode(esc_ssid,esc_ssid);
         esc_ssid[32] = 0;
+        printf("esc_ssid: %s\r\n",esc_ssid);
         for (int j = 0; j < count; j++)
         {
             char ssid_key[64];
@@ -645,6 +654,7 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
             char stored_pass[64];
             size_t required = sizeof(stored_ssid);
             snprintf(ssid_key, sizeof(ssid_key), "ssid%d", j);
+            if(internet_possible) break;
             if (nvs_get_str(h, ssid_key, NULL, &required) == ESP_OK && required <= sizeof(stored_ssid))
             {
                 nvs_get_str(h, ssid_key, stored_ssid, &required);
@@ -660,29 +670,35 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
                     }
                     printf("Found saved wifi: %s\r\n connecting....\r\n",stored_ssid);
                     if(strlen(stored_ssid)>0){
+                        printf("try connect\r\n");
                         wifi_connect_sta(stored_ssid,stored_pass);
-                        int count=0;
-                        while (!internet_possible)
+                        while(got_ip==false)
                         {
                             count++;
-                            printf("=> test wifi internet (%d/5)\r\n",count);
                             if(count>5) break;
                             vTaskDelay(1000/portTICK_PERIOD_MS);
                         }
-                        if(internet_possible) break;
+                        // int count=0;
+                        // while (!internet_possible)
+                        // {
+                        //     count++;
+                        //     internet_possible = check_internet();
+                        //     printf("=> test wifi internet (%d/5)\r\n",count);
+                        //     if(count>5) break;
+                        //     vTaskDelay(1000/portTICK_PERIOD_MS);
+                        // }
+                        // if(internet_possible) break;
+                        break;
                     }
                     //return ESP_OK;    
                 }
             }
-            rescan++;
-            if(rescan>2*count){
-                scanned=false;
-                rescan=0;
-            }
+            if(got_ip) break;
+            
         }
+    }
         nvs_commit(h);
         nvs_close(h);
-    }
 }
 
 
@@ -703,10 +719,10 @@ void setup_wifi_init(void)
     esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &ip_event_handler, NULL);
 
     esp_netif_create_default_wifi_ap();
-    esp_netif_create_default_wifi_sta();
+    //esp_netif_create_default_wifi_sta();
     wifi_init_softap();  // Khởi tạo AP (với chế độ APSTA) chế độ ap (access point - điểm truy cập) dùng để cấu hình
     // /try_connect_saved(); // nếu có credentials đã lưu, thử kết nối
-    scan_wifi_to_connect();
+   // scan_wifi_to_connect();
     start_webserver();   // Mở web server
 
     ESP_LOGI(TAG, " Web server started! Connect to WiFi AP 'Evsafe_%s' and open http://192.168.4.1/", device_name);
