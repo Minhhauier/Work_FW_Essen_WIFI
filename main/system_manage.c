@@ -31,10 +31,12 @@ void task_system_manage(void *pvParameter)
     while (got_ip == false)
     {
         if(act_handle==false && mqtt_connected==false){
-            printf("==Try connect saved wifi\r\n");
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            if(!got_ip){
+                printf("==Try connect saved wifi\r\n");
+                vTaskDelay(1000 / portTICK_PERIOD_MS);
            // if(got_ip)  break;
-            scan_wifi_to_connect();
+                scan_wifi_to_connect();
+            }
             //try_connect_saved();
             //count=0;
         }
@@ -46,8 +48,11 @@ void task_system_manage(void *pvParameter)
     {
         if(act_handle==false && mqtt_connected==false){
             //try_connect_saved();
-            printf("==Try connect saved wifi\r\n");
-            scan_wifi_to_connect();
+            if(!got_ip)
+            {
+                printf("==Try connect saved wifi\r\n");
+                scan_wifi_to_connect();
+            }
             //count=0;
         }
         vTaskDelay(10000 / portTICK_PERIOD_MS);
