@@ -653,6 +653,7 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
             char ssid_key[64];
             char stored_ssid[64];
             char stored_pass[64];
+            bool wifi_oke=false;
             size_t required = sizeof(stored_ssid);
             snprintf(ssid_key, sizeof(ssid_key), "ssid%d", j);
             if(internet_possible) break;
@@ -674,9 +675,12 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
                         printf("try connect\r\n");
                         wifi_connect_sta(stored_ssid,stored_pass);
                         int dem=0;
-                        while(got_ip==false)
+                        while(wifi_oke==false)
                         {
                             dem++;
+                            wifi_oke=check_internet();
+                            if(wifi_oke) break;
+                            printf("check internet (%d/10)",dem);
                             if(dem>5) break;
                             vTaskDelay(1000/portTICK_PERIOD_MS);
                         }
@@ -690,12 +694,12 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
                         //     vTaskDelay(1000/portTICK_PERIOD_MS);
                         // }
                         // if(internet_possible) break;
-                        break;
+                        if(dem<=5) break;
                     }
                     //return ESP_OK;    
                 }
             }
-            if(got_ip) break;
+            if(wifi_oke) break;
             
         }
     }

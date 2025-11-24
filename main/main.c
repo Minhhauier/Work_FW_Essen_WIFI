@@ -48,6 +48,9 @@ void app_main(void)
     while (1)
     {
         //ESP_LOGI(TAG, "Main task running...");
+        // bool internet = check_internet();
+        // if(internet) printf("internet possible \r\n");
+        // else printf("can't connect to internet\r\n");
         vTaskDelay(1000/portTICK_PERIOD_MS);
     }
 }
