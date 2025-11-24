@@ -18,4 +18,5 @@ void mqtt_publish_wifi_infor(char *ssid,char *mac,char*ip,int rssi);
 void mqtt_publish_gun_status(int *value_status);
 void mqtt_respond_change_gate(int gate, int state, int cmd);
 void mqtt_publish_data(char *data,char *topic);
+void mqtt_respond_ping();
 #endif

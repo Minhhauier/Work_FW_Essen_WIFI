@@ -12,5 +12,7 @@ idf_component_register(
 
             control_relay
             setup_wifi
+        PRIV_REQUIRES
+            control_led
 )
 

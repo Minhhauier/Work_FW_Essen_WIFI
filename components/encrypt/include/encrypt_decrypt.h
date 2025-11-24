@@ -23,6 +23,6 @@ char *encrypt_data(const char *json_data, char *ser_num, int cmd_type);
 char *get_subarray(char *data, char *start, char end);
 void parse_json(const char *json_str);
 void convert_to_json(const char *data);
-
+char *encrypt_data_resond_ping(const char *json_data);
 
 #endif

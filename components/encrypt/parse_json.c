@@ -8,7 +8,6 @@
 #include <driver/uart.h>
 #include <driver/gpio.h>
 
-
 #include "system_manage.h"
 #include "config_parameter.h"
 #include "control_led.h"
@@ -18,7 +17,7 @@
 #include "ota_wifi.h"
 
 #define GATE_STATE_TAG "GATE_STATE"
-int control_signal=0;
+int control_signal = 0;
 
 // void ota_task(char *link){
 //    send_at_get_respond("AT\r\n",1000);
@@ -29,22 +28,28 @@ int control_signal=0;
 //         vTaskDelay(3000/portTICK_PERIOD_MS);
 //     }
 // }
-void parse_json(const char *json_str) {
+void parse_json(const char *json_str)
+{
     cJSON *root = cJSON_Parse(json_str);
-    if (root == NULL) {
+    if (root == NULL)
+    {
         printf("Error parse JSON!\n");
         return;
     }
     const cJSON *serial_number = cJSON_GetObjectItemCaseSensitive(root, "serial_number");
     const cJSON *command_type = cJSON_GetObjectItem(root, "command_type");
     const cJSON *data = cJSON_GetObjectItemCaseSensitive(root, "data");
-    const cJSON *data_new = cJSON_GetObjectItemCaseSensitive(data,"data");
-    if (cJSON_IsString(serial_number)) {
+    const cJSON *data_new = cJSON_GetObjectItemCaseSensitive(data, "data");
+    if (cJSON_IsString(serial_number))
+    {
         char *ser_num = serial_number->valuestring;
-        if (strcmp(ser_num, device_name) == 0) {
-            if (cJSON_IsNumber(command_type)) {
+        if (strcmp(ser_num, device_name) == 0)
+        {
+            if (cJSON_IsNumber(command_type))
+            {
                 int cmd_type = command_type->valueint;
-                if (cmd_type == 101) {
+                if (cmd_type == 101)
+                {
                     // const cJSON *gun1 = cJSON_GetObjectItemCaseSensitive(data, "gun1");
                     // const cJSON *gun2 = cJSON_GetObjectItemCaseSensitive(data, "gun2");
                     // const cJSON *gun3 = cJSON_GetObjectItemCaseSensitive(data, "gun3");
@@ -58,218 +63,273 @@ void parse_json(const char *json_str) {
                     const cJSON *gun5 = cJSON_GetObjectItemCaseSensitive(data_new, "gun5");
                     const cJSON *gun6 = cJSON_GetObjectItemCaseSensitive(data_new, "gun6");
                     const cJSON *V = cJSON_GetObjectItemCaseSensitive(data_new, "V");
-                    if (gun1 != NULL) {
+                    if (gun1 != NULL)
+                    {
                         const cJSON *action = cJSON_GetObjectItemCaseSensitive(gun1, "action");
                         const cJSON *order_time = cJSON_GetObjectItemCaseSensitive(gun1, "order_time");
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun1, "limit_time");
-                        if (cJSON_IsNumber(action)) {
+                        if (cJSON_IsNumber(action))
+                        {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 2)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 1: Stop");
                                 charging_led_by_status(GATE_NUM_1, LED_READY);
                                 set_gate_state(GATE_NUM_1, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                            }
+                            else if (act == 1)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 1: Charging");
                                 charging_led_by_status(GATE_NUM_1, LED_CHARGING);
                                 set_gate_state(GATE_NUM_1, GATE_CHARGE);
                             }
-                            else if (act == 3){
+                            else if (act == 3)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 1: Waiting");
                                 charging_led_by_status(GATE_NUM_1, LED_WAITTING);
                                 set_gate_state(GATE_NUM_1, GATE_DISCHARGE);
                             }
-                            control_signal=1;
+                            control_signal = 1;
                         }
-                        if (cJSON_IsNumber(order_time)) {
+                        if (cJSON_IsNumber(order_time))
+                        {
                             int odt = order_time->valueint;
-                          //  printf("Gun1 order_time: %d\r\n", odt);
+                            //  printf("Gun1 order_time: %d\r\n", odt);
                         }
-                        if (cJSON_IsNumber(limit_time)) {
+                        if (cJSON_IsNumber(limit_time))
+                        {
                             int lmt = limit_time->valueint;
-                           // printf("Gun1 limit_time: %d\r\n", lmt);
+                            // printf("Gun1 limit_time: %d\r\n", lmt);
                         }
                     }
-                     if (gun2 != NULL) {
+                    if (gun2 != NULL)
+                    {
                         const cJSON *action = cJSON_GetObjectItemCaseSensitive(gun2, "action");
                         const cJSON *order_time = cJSON_GetObjectItemCaseSensitive(gun2, "order_time");
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun2, "limit_time");
-                        if (cJSON_IsNumber(action)) {
+                        if (cJSON_IsNumber(action))
+                        {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 2)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 2: Stop");
                                 charging_led_by_status(GATE_NUM_2, LED_READY);
                                 set_gate_state(GATE_NUM_2, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                            }
+                            else if (act == 1)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 2: Charging");
                                 charging_led_by_status(GATE_NUM_2, LED_CHARGING);
                                 set_gate_state(GATE_NUM_2, GATE_CHARGE);
                             }
-                            else if (act == 3){
+                            else if (act == 3)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 2: Waiting");
                                 charging_led_by_status(GATE_NUM_2, LED_WAITTING);
                                 set_gate_state(GATE_NUM_2, GATE_DISCHARGE);
                             }
-                            control_signal=1;
+                            control_signal = 1;
                         }
-                        if (cJSON_IsNumber(order_time)) {
+                        if (cJSON_IsNumber(order_time))
+                        {
                             int odt = order_time->valueint;
-                            //printf("Gun2 order_time: %d\r\n", odt);
+                            // printf("Gun2 order_time: %d\r\n", odt);
                         }
-                        if (cJSON_IsNumber(limit_time)) {
+                        if (cJSON_IsNumber(limit_time))
+                        {
                             int lmt = limit_time->valueint;
-                            //printf("Gun2 limit_time: %d\r\n", lmt);
+                            // printf("Gun2 limit_time: %d\r\n", lmt);
                         }
                     }
-                    if (gun3 != NULL) {
+                    if (gun3 != NULL)
+                    {
                         const cJSON *action = cJSON_GetObjectItemCaseSensitive(gun3, "action");
                         const cJSON *order_time = cJSON_GetObjectItemCaseSensitive(gun3, "order_time");
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun3, "limit_time");
-                        if (cJSON_IsNumber(action)) {
+                        if (cJSON_IsNumber(action))
+                        {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 2)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 3: Stop");
                                 charging_led_by_status(GATE_NUM_3, LED_READY);
                                 set_gate_state(GATE_NUM_3, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                            }
+                            else if (act == 1)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 3: Charging");
                                 charging_led_by_status(GATE_NUM_3, LED_CHARGING);
                                 set_gate_state(GATE_NUM_3, GATE_CHARGE);
                             }
-                            else if (act == 3){
+                            else if (act == 3)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 3: Waiting");
                                 charging_led_by_status(GATE_NUM_3, LED_WAITTING);
                                 set_gate_state(GATE_NUM_3, GATE_DISCHARGE);
                             }
-                            control_signal=1;
+                            control_signal = 1;
                         }
-                        if (cJSON_IsNumber(order_time)) {
+                        if (cJSON_IsNumber(order_time))
+                        {
                             int odt = order_time->valueint;
-                            //printf("Gun3 order_time: %d\r\n", odt);
+                            // printf("Gun3 order_time: %d\r\n", odt);
                         }
-                        if (cJSON_IsNumber(limit_time)) {
+                        if (cJSON_IsNumber(limit_time))
+                        {
                             int lmt = limit_time->valueint;
-                            //printf("Gun3 limit_time: %d\r\n", lmt);
+                            // printf("Gun3 limit_time: %d\r\n", lmt);
                         }
                     }
-                     if (gun4 != NULL) {
+                    if (gun4 != NULL)
+                    {
                         const cJSON *action = cJSON_GetObjectItemCaseSensitive(gun4, "action");
                         const cJSON *order_time = cJSON_GetObjectItemCaseSensitive(gun4, "order_time");
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun4, "limit_time");
-                        if (cJSON_IsNumber(action)) {
+                        if (cJSON_IsNumber(action))
+                        {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 2)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 4: Stop");
                                 charging_led_by_status(GATE_NUM_4, LED_READY);
                                 set_gate_state(GATE_NUM_4, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                            }
+                            else if (act == 1)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 4: Charging");
                                 charging_led_by_status(GATE_NUM_4, LED_CHARGING);
                                 set_gate_state(GATE_NUM_4, GATE_CHARGE);
                             }
-                            else if (act == 3){
+                            else if (act == 3)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 4: Waiting");
                                 charging_led_by_status(GATE_NUM_4, LED_WAITTING);
                                 set_gate_state(GATE_NUM_4, GATE_DISCHARGE);
                             }
-                            control_signal=1;
+                            control_signal = 1;
                         }
-                        if (cJSON_IsNumber(order_time)) {
+                        if (cJSON_IsNumber(order_time))
+                        {
                             int odt = order_time->valueint;
-                            //printf("Gun4 order_time: %d\r\n", odt);
+                            // printf("Gun4 order_time: %d\r\n", odt);
                         }
-                        if (cJSON_IsNumber(limit_time)) {
+                        if (cJSON_IsNumber(limit_time))
+                        {
                             int lmt = limit_time->valueint;
-                            //printf("Gun4 limit_time: %d\r\n", lmt);
+                            // printf("Gun4 limit_time: %d\r\n", lmt);
                         }
                     }
-                     if (gun5 != NULL) {
+                    if (gun5 != NULL)
+                    {
                         const cJSON *action = cJSON_GetObjectItemCaseSensitive(gun5, "action");
                         const cJSON *order_time = cJSON_GetObjectItemCaseSensitive(gun5, "order_time");
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun5, "limit_time");
-                        if (cJSON_IsNumber(action)) {
+                        if (cJSON_IsNumber(action))
+                        {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 2)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 5: Stop");
                                 charging_led_by_status(GATE_NUM_5, LED_READY);
                                 set_gate_state(GATE_NUM_5, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                            }
+                            else if (act == 1)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 5: Charging");
                                 charging_led_by_status(GATE_NUM_5, LED_CHARGING);
                                 set_gate_state(GATE_NUM_5, GATE_CHARGE);
                             }
-                            else if (act == 3){
+                            else if (act == 3)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 5: Waiting");
                                 charging_led_by_status(GATE_NUM_5, LED_WAITTING);
                                 set_gate_state(GATE_NUM_5, GATE_DISCHARGE);
                             }
-                            control_signal=1;
+                            control_signal = 1;
                         }
-                        if (cJSON_IsNumber(order_time)) {
+                        if (cJSON_IsNumber(order_time))
+                        {
                             int odt = order_time->valueint;
-                            //printf("Gun5 order_time: %d\r\n", odt);
+                            // printf("Gun5 order_time: %d\r\n", odt);
                         }
-                        if (cJSON_IsNumber(limit_time)) {
+                        if (cJSON_IsNumber(limit_time))
+                        {
                             int lmt = limit_time->valueint;
-                            //printf("Gun1 limit_time: %d\r\n", lmt);
+                            // printf("Gun1 limit_time: %d\r\n", lmt);
                         }
                     }
-                     if (gun6 != NULL) {
+                    if (gun6 != NULL)
+                    {
                         const cJSON *action = cJSON_GetObjectItemCaseSensitive(gun6, "action");
                         const cJSON *order_time = cJSON_GetObjectItemCaseSensitive(gun6, "order_time");
                         const cJSON *limit_time = cJSON_GetObjectItemCaseSensitive(gun6, "limit_time");
-                        if (cJSON_IsNumber(action)) {
+                        if (cJSON_IsNumber(action))
+                        {
                             int act = action->valueint;
-                            if (act == 2) {
+                            if (act == 2)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 6: Stop");
                                 charging_led_by_status(GATE_NUM_6, LED_READY);
                                 set_gate_state(GATE_NUM_6, GATE_DISCHARGE);
-                            } else if (act == 1) {
+                            }
+                            else if (act == 1)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 6: Charging");
                                 charging_led_by_status(GATE_NUM_6, LED_CHARGING);
                                 set_gate_state(GATE_NUM_6, GATE_CHARGE);
                             }
-                            else if (act==3){
+                            else if (act == 3)
+                            {
                                 ESP_LOGI(GATE_STATE_TAG, "Gate 6: Waiting");
                                 charging_led_by_status(GATE_NUM_6, LED_WAITTING);
                                 set_gate_state(GATE_NUM_6, GATE_DISCHARGE);
                             }
-                            control_signal=1;
+                            control_signal = 1;
                         }
-                        if (cJSON_IsNumber(order_time)) {
+                        if (cJSON_IsNumber(order_time))
+                        {
                             int odt = order_time->valueint;
-                            //printf("Gun6 order_time: %d\r\n", odt);
+                            // printf("Gun6 order_time: %d\r\n", odt);
                         }
-                        if (cJSON_IsNumber(limit_time)) {
+                        if (cJSON_IsNumber(limit_time))
+                        {
                             int lmt = limit_time->valueint;
-                            //printf("Gun6 limit_time: %d\r\n", lmt);
+                            // printf("Gun6 limit_time: %d\r\n", lmt);
                         }
                     }
-                    if(V!=NULL){
-                    int value = V->valueint;
-                    mqtt_respond_change_gate(value, 1, 208);
+                    if (V != NULL)
+                    {
+                        int value = V->valueint;
+                        mqtt_respond_change_gate(value, 1, 208);
                     }
-                    
-                     //xQueueSend(publish_queue_handle,"Hardware_respond",portMAX_DELAY);
-            //        }
+
+                    // xQueueSend(publish_queue_handle,"Hardware_respond",portMAX_DELAY);
+                    //        }
                 }
-                else if (cmd_type == 102) {
+                else if (cmd_type == 102)
+                {
                     const cJSON *action = cJSON_GetObjectItemCaseSensitive(data_new, "action");
-                    if (cJSON_IsNumber(action)) {
+                    if (cJSON_IsNumber(action))
+                    {
                         int act = action->valueint;
-                        if (act == 1) {
+                        if (act == 1)
+                        {
                             ESP_LOGI("COMMAND_102", "Restart device");
                             vTaskDelay(1000 / portTICK_PERIOD_MS);
                             esp_restart();
                         }
                     }
                 }
-                else if (cmd_type == 103) {
+                else if (cmd_type == 103)
+                {
                     printf("===report error===\r\n");
                     printf("->Reset Error state\r\n");
                 }
-                else if (cmd_type == 104) {
+                else if (cmd_type == 104)
+                {
                     const cJSON *lock_state = cJSON_GetObjectItemCaseSensitive(data_new, "lock_state");
-                    if (cJSON_IsNumber(lock_state)) {
+                    if (cJSON_IsNumber(lock_state))
+                    {
                         int lockst = lock_state->valueint;
                         if (lockst == 0)
                             ESP_LOGI("COMMAND_104", "Unlocked device");
@@ -277,25 +337,41 @@ void parse_json(const char *json_str) {
                             ESP_LOGI("COMMAND_104", "Locked device");
                     }
                 }
-                else if (cmd_type == 400) {
+                else if (cmd_type == 400)
+                {
                     printf("===OTA update firmware===\r\n");
                     const cJSON *ver = cJSON_GetObjectItemCaseSensitive(data_new, "ver");
                     const cJSON *link1 = cJSON_GetObjectItemCaseSensitive(data_new, "link1");
                     const cJSON *link2 = cJSON_GetObjectItemCaseSensitive(data_new, "link2");
-                    if (cJSON_IsString(ver)) {
+                    if (cJSON_IsString(ver))
+                    {
                         char *v = ver->valuestring;
                         printf("->updating %s version\r\n", v);
                     }
-                    if (cJSON_IsString(link2)) {
+                    if (cJSON_IsString(link2))
+                    {
                         char *lnk1 = link1->valuestring;
                         printf("->updating from %s\r\n", lnk1);
                         printf("Starting download........\r\n");
-                        on_ota=true;
-                        mqtt_publish_version(HW_VERSION,FW_VERSION,1);
+                        on_ota = true;
+                        mqtt_publish_version(HW_VERSION, FW_VERSION, 1);
                         do_firmware_upgrade(lnk1);
-                        //esp_restart();
+                        // esp_restart();
                     }
-                   // do_firmware_upgrade("http://ota1.chtlab.us/dev/blink.bin");
+                    // do_firmware_upgrade("http://ota1.chtlab.us/dev/blink.bin");
+                }
+            }
+        }
+        if (strcmp(ser_num, "broadcast") == 0)
+        {
+            if (cJSON_IsString(command_type))
+            {
+                char *cmd_type = command_type->valuestring;
+                if (strcmp(cmd_type, "ping")==0)
+                {
+                    //printf("responed\r\n");
+                    timer_get_ping_off_gate();
+                    mqtt_respond_ping();
                 }
             }
         }

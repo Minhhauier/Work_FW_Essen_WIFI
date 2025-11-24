@@ -16,4 +16,5 @@ void stop_action_timer_callback(void *arg);
 void start_stop_timer(void);
 void stop_my_timer(void);
 void detect_wifi_task();
+void timer_get_ping_off_gate();
 #endif

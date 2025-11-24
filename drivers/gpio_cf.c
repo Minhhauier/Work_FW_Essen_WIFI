@@ -8,11 +8,13 @@
 
 #include "setup_wifi.h"
 #include "esp_wifi.h"
+#include "control_led.h"
 
 #define DELAY_US 15000  // 15ms
 
 static esp_timer_handle_t delay_timer; 
 static esp_timer_handle_t stop_timer = NULL;
+static esp_timer_handle_t get_ping_timer = NULL; 
 
 // callback sau 15ms 
 static void delay_timer_callback(void* arg) {
@@ -83,7 +85,7 @@ void stop_action_timer_callback(void *arg)
     wifi_state=1;
 }
 
-void    start_stop_timer(void)
+void start_stop_timer(void)
 {
     if(stop_timer!=NULL){
         esp_timer_stop(stop_timer);
@@ -108,6 +110,28 @@ void stop_my_timer(void)
         stop_timer = NULL;
         ESP_LOGI("TIMER", "Stop timer manually stopped");
     }
+}
+void off_gate_call_back(){
+    control_signal=1;
+    all_led_by_status(0);
+    off_all_gate();
+    printf("Don't get any ping data, off all gates\r\n");
+}
+
+void timer_get_ping_off_gate(){
+    if(get_ping_timer!=NULL){
+        esp_timer_stop(get_ping_timer);
+        esp_timer_delete(get_ping_timer);
+        get_ping_timer = NULL;
+    }
+    const esp_timer_create_args_t get_ping_timer_args = {
+        .callback = &off_gate_call_back,
+        .name = "get_ping_timer"
+    };
+    ESP_ERROR_CHECK(esp_timer_create(&get_ping_timer_args, &get_ping_timer));
+
+    ESP_ERROR_CHECK(esp_timer_start_once(get_ping_timer, 300000000ULL));// call back after 5 minutes 
+    ESP_LOGI("TIMER", "Get ping");
 }
 void detect_wifi_task(){
     bool config_mode = false;

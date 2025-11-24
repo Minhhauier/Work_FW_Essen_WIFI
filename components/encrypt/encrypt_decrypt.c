@@ -277,3 +277,31 @@ char *encrypt_data(const char *json_data, char *ser_num, int cmd_type) {
     return data_encrypted;
 }
 
+char *encrypt_data_resond_ping(const char *json_data) {
+    unsigned char iv[IV_SIZE];
+    unsigned char *encrypted = NULL;
+    unsigned char tag[TAG_SIZE];
+    char *data_encrypted = NULL;
+
+    // Mã hóa JSON
+    int encrypted_len = encryptJSON(json_data, key, &encrypted, iv, tag);
+
+    char *IV, *Data, *Tag;
+    if (encrypted_len < 0) {
+        printf("Mã hóa thất bại!\n");
+        return NULL;
+    }
+    IV = convert_int_to_hex("iv", iv, IV_SIZE);
+    // vTaskDelay(2 / portTICK_PERIOD_MS);
+    Data = convert_int_to_hex("data", encrypted, encrypted_len);
+    // vTaskDelay(2 / portTICK_PERIOD_MS);
+    Tag = convert_int_to_hex("tag", tag, TAG_SIZE);
+    size_t json_size = IV_SIZE * 2 + TAG_SIZE * 2 + encrypted_len * 2 + 512;
+    data_encrypted = malloc(json_size + 1);
+
+    snprintf(data_encrypted, json_size, "{\"data\":{\"iv\":\"%s\",\"data\":\"%s\",\"tag\":\"%s\"}}", IV, Data, Tag);
+    //  printf("%s\r\n",data_encrypted);
+    free(IV);free(Data);free(Tag);
+    free(encrypted);
+    return data_encrypted;
+}
