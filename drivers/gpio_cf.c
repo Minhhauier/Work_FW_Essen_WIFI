@@ -171,3 +171,35 @@ void detect_wifi_task(){
     
 
 }
+void stop_timer_off_gate(){
+    if (timer_off_gate != NULL){
+        esp_timer_stop(timer_off_gate);
+        esp_timer_delete(timer_off_gate);
+        timer_off_gate = NULL;
+        ESP_LOGI("TIMER_gate", "Stop timer off all gates");
+    }
+}
+
+void off_gate_action_call_back(){
+    control_signal=1;
+    printf("stopped all gates\r\n");
+    all_led_by_status(0);
+    off_all_gate();
+}
+void start_timer_off_all_gate(){
+    if(timer_off_gate!=NULL){
+        // esp_timer_stop(timer_off_gate);
+        // esp_timer_delete(timer_off_gate);
+        // timer_off_gate=NULL;
+        return;
+    }
+    const esp_timer_create_args_t off_gate_timer_args = {
+        .callback = &off_gate_action_call_back,
+        .name = "start_timer_to_off_gates"
+    };
+    ESP_ERROR_CHECK(esp_timer_create(&off_gate_timer_args, &timer_off_gate));
+
+    ESP_ERROR_CHECK(esp_timer_start_once(timer_off_gate, 300000000ULL));// 300 seconds
+    //ESP_ERROR_CHECK(esp_timer_start_once(timer_off_gate, 60000000ULL));// 300 seconds
+    ESP_LOGI("TIMER_OFF_GATE", "all gate off after 5 minutes");
+}

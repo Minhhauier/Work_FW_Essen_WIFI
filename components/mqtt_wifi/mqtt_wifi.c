@@ -110,10 +110,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         act_handle = false;
         scanned = false;
         publish_infor_wifi();
-        // count=0;
+        stop_timer_off_gate();
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        start_timer_off_all_gate();
         count++;
         mqtt_connected = false;
         break;
