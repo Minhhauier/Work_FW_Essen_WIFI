@@ -679,9 +679,12 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
                         {
                             dem++;
                             wifi_oke=check_internet();
-                            if(wifi_oke) break;
+                            if(wifi_oke) {
+                              //  exit_accesspoint();
+                                break;
+                            }
                             printf("check internet (%d/10)",dem);
-                            if(dem>5) break;
+                            if(dem>10) break;
                             vTaskDelay(1000/portTICK_PERIOD_MS);
                         }
                         // int count=0;
@@ -699,7 +702,10 @@ void try_connect_saved() // thử kết nối với các wifi đã lưu khi kh�
                     //return ESP_OK;    
                 }
             }
-            if(wifi_oke) break;
+            if(wifi_oke){
+            // exit_accesspoint();
+             break;
+            }
             
         }
     }

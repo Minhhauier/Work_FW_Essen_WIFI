@@ -99,6 +99,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         // Subscribe to a topic upon successful connection
+        exit_accesspoint();
         snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", SUB);
         mqtt_subscribe(client, cmd, 1);
         snprintf(cmd, sizeof(cmd), "%s_%s", DEVICE_NAME, device_name);
