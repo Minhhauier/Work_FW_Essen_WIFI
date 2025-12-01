@@ -109,6 +109,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         s_connected = true;
         act_handle = false;
         scanned = false;
+        publish_infor_wifi();
         // count=0;
         break;
     case MQTT_EVENT_DISCONNECTED:
@@ -118,7 +119,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        publish_infor_wifi();
         if (first_pub_version == false)
         {
             mqtt_publish_version(HW_VERSION, FW_VERSION, 0);
