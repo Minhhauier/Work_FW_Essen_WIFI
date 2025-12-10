@@ -15,6 +15,7 @@
 static esp_timer_handle_t delay_timer; 
 static esp_timer_handle_t stop_timer = NULL;
 static esp_timer_handle_t get_ping_timer = NULL; 
+static esp_timer_handle_t timer_off_gate = NULL;
 
 // callback sau 15ms 
 static void delay_timer_callback(void* arg) {

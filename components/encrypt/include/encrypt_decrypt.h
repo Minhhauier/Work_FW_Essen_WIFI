@@ -24,5 +24,5 @@ char *get_subarray(char *data, char *start, char end);
 void parse_json(const char *json_str);
 void convert_to_json(const char *data);
 char *encrypt_data_resond_ping(const char *json_data);
-
+void convert_to_json_update(const char *data);
 #endif

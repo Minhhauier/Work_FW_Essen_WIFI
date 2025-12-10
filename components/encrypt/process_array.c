@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <config_parameter.h>
 #include <encrypt_decrypt.h>
+#include <cJSON.h>
 
 static char JSON[];
 
@@ -87,5 +88,25 @@ void convert_to_json(const char *data) {
             free(Data_json);
             free(mess);
         }
+    }
+}
+
+// update convert to json function
+void convert_to_json_update(const char *data) {
+    if(data==NULL) return;
+    char final_data[1024];
+    char *start;char *end;
+    start = (char *)data;
+    while (1){
+      start = strchr(start,'{');
+      if(start==NULL) break;   
+      end = strchr(start,'}');
+      if(end==NULL) break;
+      int len = end - start + 2;
+      memcpy(final_data,start,len);
+      final_data[len]='\0';
+      printf("%s\r\n",final_data);
+      convert_to_json(final_data);
+      start=end+1;
     }
 }

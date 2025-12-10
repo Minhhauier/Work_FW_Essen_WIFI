@@ -12,5 +12,6 @@ idf_component_register(
         main
         encrypt
         setup_wifi
+        drivers
 
 )
