@@ -101,9 +101,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         // Subscribe to a topic upon successful connection
         exit_accesspoint();
-        snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", SUB);
-        mqtt_subscribe(client, cmd, 1);
-        snprintf(cmd, sizeof(cmd), "%s_%s", DEVICE_NAME, device_name);
+        // snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", SUB);
+        // mqtt_subscribe(client, cmd, 1);
+        // snprintf(cmd, sizeof(cmd), "%s_%s", DEVICE_NAME, device_name);
+
+        snprintf(cmd, sizeof(cmd), "%s/Test", device_name);
         mqtt_subscribe(client, cmd, 1);
         wifi_state = 1;
         mqtt_connected = true;
@@ -140,7 +142,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         memcpy(buffer, event->data, event->data_len);
         buffer[event->data_len] = '\0';
         
-        convert_to_json_update(buffer);
+        //convert_to_json_update(buffer);
+        parse_json(buffer);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
