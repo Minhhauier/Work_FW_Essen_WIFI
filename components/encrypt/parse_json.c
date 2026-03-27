@@ -38,9 +38,9 @@ void parse_json(const char *json_str)
     }
     const cJSON *serial_number = cJSON_GetObjectItemCaseSensitive(root, "serial_number");
     const cJSON *command_type = cJSON_GetObjectItem(root, "command_type");
-   // const cJSON *data = cJSON_GetObjectItemCaseSensitive(root, "data");
-     //const cJSON *data_new = cJSON_GetObjectItemCaseSensitive(data, "data");
-     const cJSON *data_new = cJSON_GetObjectItemCaseSensitive(root, "data");
+    const cJSON *data = cJSON_GetObjectItemCaseSensitive(root, "data");
+    const cJSON *data_new = cJSON_GetObjectItemCaseSensitive(data, "data");
+    //  const cJSON *data_new = cJSON_GetObjectItemCaseSensitive(root, "data");
     if (cJSON_IsString(serial_number))
     {
         char *ser_num = serial_number->valuestring;
