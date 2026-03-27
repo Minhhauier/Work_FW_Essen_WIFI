@@ -157,8 +157,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         memcpy(buffer, event->data, event->data_len);
         buffer[event->data_len] = '\0';
         
-        //convert_to_json_update(buffer);
-        parse_json(buffer);
+        convert_to_json_update(buffer);
+        // parse_json(buffer);
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
