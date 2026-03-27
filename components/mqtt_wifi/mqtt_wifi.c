@@ -101,11 +101,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         // Subscribe to a topic upon successful connection
         exit_accesspoint();
-        // snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", SUB);
-        // mqtt_subscribe(client, cmd, 1);
-        // snprintf(cmd, sizeof(cmd), "%s_%s", DEVICE_NAME, device_name);
+        snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", SUB);
+        mqtt_subscribe(client, cmd, 1);
+        snprintf(cmd, sizeof(cmd), "%s_%s", DEVICE_NAME, device_name);
 
-        snprintf(cmd, sizeof(cmd), "%s/Test", device_name);
+        // snprintf(cmd, sizeof(cmd), "%s/Test", device_name);
         mqtt_subscribe(client, cmd, 1);
         wifi_state = 1;
         mqtt_connected = true;
@@ -163,7 +163,7 @@ void mqtt_init(char *mqtt_address, char *client_id, char *username, char *passwo
         .credentials.username = username,
         .credentials.authentication.password = password,
         .network.reconnect_timeout_ms = 5000,
-        .session.keepalive = 60,
+        .session.keepalive = 120,
     };
     client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
