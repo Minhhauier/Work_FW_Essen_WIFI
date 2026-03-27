@@ -32,6 +32,9 @@ void get_device_name(char *device_name) {
 }
 void app_main(void)
 {   
+
+    esp_log_level_set("*", ESP_LOG_NONE);
+
     get_device_name(device_name);
     ESP_LOGI(TAG,"==Device name: %s==",device_name);
     ESP_LOGI(TAG, "Starting setup_wifi_init()");

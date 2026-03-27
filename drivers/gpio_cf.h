@@ -19,4 +19,5 @@ void detect_wifi_task();
 void timer_get_ping_off_gate();
 void start_timer_off_all_gate();
 void stop_timer_off_gate();
+void timer_reconnect_mqtt();
 #endif

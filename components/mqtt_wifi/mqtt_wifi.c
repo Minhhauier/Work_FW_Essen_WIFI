@@ -88,6 +88,21 @@ static void check_wifi()
         ESP_LOGI("WIFI", "Wi-Fi đang tắt hoặc không xác định");
     }
 }
+void mqtt_resubscribe()
+{
+    if (client == NULL && client)
+    {
+        ESP_LOGE(TAG, "MQTT client is not initialized");
+        return;
+    }
+    else
+        ESP_LOGI(TAG, "MQTT resubscribe");
+
+    snprintf(cmd, sizeof(cmd), "%s/SmartEVsafe", SUB);
+    mqtt_subscribe(client, cmd, 1);
+    snprintf(cmd, sizeof(cmd), "%s_%s", DEVICE_NAME, device_name);
+    mqtt_subscribe(client, cmd, 1);
+}
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     esp_mqtt_event_handle_t event = event_data;

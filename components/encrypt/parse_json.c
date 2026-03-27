@@ -372,6 +372,7 @@ void parse_json(const char *json_str)
                 {
                     //printf("responed\r\n");
                     timer_get_ping_off_gate();
+                    timer_reconnect_mqtt();
                     mqtt_respond_ping();
                 }
             }

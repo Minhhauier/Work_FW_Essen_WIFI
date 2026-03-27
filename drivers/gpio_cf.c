@@ -9,6 +9,7 @@
 #include "setup_wifi.h"
 #include "esp_wifi.h"
 #include "control_led.h"
+#include "mqtt_wifi.h"
 
 #define DELAY_US 15000  // 15ms
 
@@ -16,7 +17,7 @@ static esp_timer_handle_t delay_timer;
 static esp_timer_handle_t stop_timer = NULL;
 static esp_timer_handle_t get_ping_timer = NULL; 
 static esp_timer_handle_t timer_off_gate = NULL;
-
+static esp_timer_handle_t reconnect_mqtt_timer = NULL;
 // callback sau 15ms 
 static void delay_timer_callback(void* arg) {
     if(control_signal==1)
@@ -189,7 +190,8 @@ void off_gate_action_call_back(){
 }
 void start_timer_off_all_gate(){
     if(timer_off_gate!=NULL){
-        // esp_timer_stop(timer_off_gate);
+        esp_timer_stop(timer_off_gate);
+        esp_timer_start_once(timer_off_gate, 300000000ULL);// 300 seconds
         // esp_timer_delete(timer_off_gate);
         // timer_off_gate=NULL;
         return;
@@ -203,4 +205,25 @@ void start_timer_off_all_gate(){
     ESP_ERROR_CHECK(esp_timer_start_once(timer_off_gate, 300000000ULL));// 300 seconds
     //ESP_ERROR_CHECK(esp_timer_start_once(timer_off_gate, 60000000ULL));// 300 seconds
     ESP_LOGI("TIMER_OFF_GATE", "all gate off after 5 minutes");
+}
+
+void reconnect_mqtt_callback(){
+    mqtt_resubscribe();
+    ESP_LOGI("TIMER", "Reconnect MQTT");
+}
+void timer_reconnect_mqtt(){
+    if(reconnect_mqtt_timer!=NULL){
+        esp_timer_stop(reconnect_mqtt_timer);
+        esp_timer_start_once(reconnect_mqtt_timer, 180000000ULL);// call back after 3 minutes 
+        return;
+    }
+    const esp_timer_create_args_t reconnect_mqtt_timer_args = {
+        .callback = &reconnect_mqtt_callback,
+        .name = "reconnect_mqtt_timer"
+    };
+    ESP_ERROR_CHECK(esp_timer_create(&reconnect_mqtt_timer_args, &reconnect_mqtt_timer));
+
+    ESP_ERROR_CHECK(esp_timer_start_once(reconnect_mqtt_timer, 180000000ULL));// call back after 3 minutes 
+    ESP_LOGI("TIMER", "Reconnect mqtt timer started");
+    // printf("Start timer reconnect mqtt\r\n");
 }

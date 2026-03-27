@@ -14,5 +14,6 @@ idf_component_register(
             setup_wifi
         PRIV_REQUIRES
             control_led
+            mqtt_wifi
 )
 
