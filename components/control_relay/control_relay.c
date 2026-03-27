@@ -76,6 +76,7 @@ void set_gate_state(int gate_num, gate_state_t state) {
         default:
             return;  // Invalid state 
     }
+    control_signal = 1;
     // if(control_signal!=1)  relay_set(g_gate_state);
 }
 
