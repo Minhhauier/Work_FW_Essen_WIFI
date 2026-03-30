@@ -61,7 +61,7 @@ PzemData_t pzem_read_and_feedback(uint8_t pzem_addr)
 
     // ===== 2. Đọc phản hồi =====
     uint8_t rx_buf[128];
-    int len = uart_read_bytes(UART_PZEM_NUM, rx_buf, sizeof(rx_buf), pdMS_TO_TICKS(1000));
+    int len = uart_read_bytes(UART_PZEM_NUM, rx_buf, sizeof(rx_buf), pdMS_TO_TICKS(500));
 
     if (len < 23)
     {
@@ -248,6 +248,7 @@ void pzem_task(void *pvParameters)
     float power[6] = {0, 0, 0, 0, 0, 0};
     int vol[6] = {0, 0, 0, 0, 0, 0};
     int count[6] = {0, 0, 0, 0, 0, 0};
+    int count_max[6] = {0, 0, 0, 0, 0, 0};
     while (1)
     {
         if (pzem_read_enable)
@@ -264,6 +265,21 @@ void pzem_task(void *pvParameters)
                         power[addr - 1] = data.power;
                     else
                         power[addr - 1] = 0;
+                    
+                    if (power[addr - 1] > 2000)
+                    {
+                        if (get_gate_state(addr) == GATE_CHARGE)
+                            count_max[addr - 1]++;
+                        else
+                            count_max[addr - 1] = 0;
+                        if (count_max[addr - 1] >= 5)
+                        {
+                            set_gate_state(addr, GATE_DISCHARGE);
+                            set_group_led(&charge_led, COLOR_BLACK, addr);
+                            count_max[addr - 1] = 0;
+                        }
+                    }
+                    
                     if (power[addr - 1] <= 50)
                     {
                         if (get_gate_state(addr) == GATE_CHARGE)
